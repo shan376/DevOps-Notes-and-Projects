@@ -1,0 +1,62 @@
+# 📂 01-DevOps
+
+### 🔰 Definition
+
+DevOps is a **culture, mindset, and set of practices** that brings **Development (Dev)** and **Operations (Ops)** teams together to deliver software **faster, more reliable, and continuously improving**.
+
+---
+
+### ✅ Benefits of DevOps
+
+* 🚀 **Productivity** → Faster delivery cycles
+* ⚡ **Speed** → Quick deployments
+* 📊 **Load Handling** → Scalability & efficiency
+* 🤝 **Collaboration** → Shared responsibility
+* ✅ **Quality** → Fewer bugs & better performance
+
+---
+
+### 🔄 DevOps Lifecycle
+
+1. **Plan** → Define project scope & tasks
+2. **Develop (Code)** → Write application code
+3. **Build** → Compile & package (Maven/Gradle)
+4. **Test** → Automated + manual testing
+5. **Release** → Version control & release planning
+6. **Deploy** → Staging/production deployment
+7. **Operate** → Manage infrastructure
+8. **Monitor** → Performance, logs, feedback
+
+---
+
+### ⚙️ CI/CD Pipeline Stages
+
+* **Version Control (Git)** → Maintain code versions
+* **Continuous Integration (Jenkins)** → Build, test, validate
+* **Continuous Deployment (AWS, Docker)** → Release to production
+
+---
+
+### 🌍 DevOps Culture
+
+* Collaboration 🤝
+* Transparency 🔍
+* Shared Responsibility 🏆
+* Continuous Feedback 🔄
+
+---
+
+### 🧠 DevOps Mindset
+
+* Automate everything ⚡
+* Frequent small updates 🔄
+* Monitor, measure, improve 📊
+* Encourage innovation 💡
+
+---
+
+### 📌 Real-World Examples
+
+* **Netflix** → Daily deployments with CI/CD
+* **Amazon** → Automated testing + deployment
+* **Facebook** → Continuous deployment at scale
