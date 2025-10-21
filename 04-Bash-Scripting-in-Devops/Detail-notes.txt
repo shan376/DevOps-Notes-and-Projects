@@ -1,0 +1,313 @@
+Bash Scripting: Introduction, Variables & Practical Automation**
+
+This file will follow your same DevOps-style format — full conceptual explanation + real examples + practical scripts + assignments (GitHub-ready).
+Let’s go 👇
+
+---
+
+## 🧾 **details.txt — Topic 4: Bash Scripting (Introduction, Variables & Automation)**
+
+---
+
+### 📘 **1. What is Bash Scripting?**
+
+Bash scripting is the process of writing and executing a series of commands inside a text file using the **Bash shell**.
+It automates repetitive tasks, simplifies system management, and is widely used by **DevOps engineers** for infrastructure automation.
+
+**Key Benefits of Bash Scripting:**
+
+* Automates routine admin and deployment tasks.
+* Reduces manual errors and saves time.
+* Can be scheduled via **cron jobs** for periodic automation.
+
+---
+
+### 🧰 **2. How to Create and Run a Bash Script**
+
+**Step 1 – Create Script File:**
+
+```bash
+nano myscript.sh
+```
+
+**Step 2 – Add Shebang (Interpreter Line):**
+
+```bash
+#!/bin/bash
+```
+
+> The *shebang* ensures the script runs using the Bash shell.
+
+**Step 3 – Make Script Executable:**
+
+```bash
+chmod +x myscript.sh
+```
+
+**Step 4 – Run Script:**
+
+```bash
+./myscript.sh
+```
+
+---
+
+### 🧠 **3. Variables in Bash**
+
+Variables store values (text, numbers, or command output) that can be reused in the script.
+
+**Syntax:**
+
+```bash
+variable_name="Hello, DevOps!"
+echo $variable_name
+```
+
+✅ *No spaces around `=` while declaring variables.*
+
+---
+
+#### **Types of Variables:**
+
+* **Local Variables:** Used within the script only.
+* **Environment Variables:** Accessible system-wide (e.g., `$HOME`, `$PATH`).
+
+**Example:**
+
+```bash
+#!/bin/bash
+name="Engineer"
+echo "Hello, $name!"
+```
+
+---
+
+#### **Special Variables:**
+
+| Variable   | Description                  |
+| ---------- | ---------------------------- |
+| `$0`       | Script name                  |
+| `$1`, `$2` | Positional arguments         |
+| `$#`       | Number of arguments passed   |
+| `$@`       | All arguments                |
+| `$$`       | Process ID of current script |
+
+**Example:**
+
+```bash
+#!/bin/bash
+echo "First arg: $1"
+echo "Script name: $0"
+```
+
+---
+
+### 💬 **4. User Input and Arguments**
+
+**Taking User Input**
+
+```bash
+#!/bin/bash
+echo "Enter your name:"
+read name
+echo "Welcome, $name!"
+```
+
+**Command-line Arguments**
+
+```bash
+#!/bin/bash
+echo "First argument: $1"
+```
+
+Run it:
+
+```bash
+./myscript.sh DevOps
+# Output → First argument: DevOps
+```
+
+---
+
+### ⚖️ **5. Conditional Statements (if, elif, else)**
+
+**Syntax:**
+
+```bash
+if [ condition ]; then
+    # Commands
+elif [ another_condition ]; then
+    # Commands
+else
+    # Default
+fi
+```
+
+**Example:**
+
+```bash
+#!/bin/bash
+echo "Enter a number:"
+read num
+if [ $num -gt 0 ]; then
+    echo "Positive number"
+elif [ $num -lt 0 ]; then
+    echo "Negative number"
+else
+    echo "Zero"
+fi
+```
+
+---
+
+### 🔁 **6. Loops in Bash**
+
+#### **For Loop**
+
+Used when you know how many times to iterate.
+
+```bash
+for i in {1..5}
+do
+  echo "Number $i"
+done
+```
+
+#### **While Loop**
+
+Executes while condition remains true.
+
+```bash
+i=1
+while [ $i -le 5 ]
+do
+  echo "Number $i"
+  ((i++))
+done
+```
+
+#### **Until Loop**
+
+Runs until condition becomes true.
+
+```bash
+i=1
+until [ $i -gt 5 ]
+do
+  echo "Number $i"
+  ((i++))
+done
+```
+
+---
+
+### 🧩 **7. Useful Built-in Commands**
+
+| Command | Description               |
+| ------- | ------------------------- |
+| `echo`  | Prints output to terminal |
+| `ls`    | Lists files/directories   |
+| `cd`    | Changes directory         |
+| `cat`   | Displays file content     |
+| `touch` | Creates empty file        |
+| `rm`    | Removes file or directory |
+
+**Example:**
+
+```bash
+#!/bin/bash
+echo "Listing files:"
+ls
+cd /home
+echo "Now inside home directory."
+```
+
+---
+
+### 🧠 **8. Practical Bash Scripts**
+
+#### **Script 1 — Backup Files**
+
+Creates a backup of a directory with timestamp.
+
+```bash
+#!/bin/bash
+# Backup Script
+source_dir="/path/to/source"
+backup_dir="/path/to/backup"
+timestamp=$(date +"%Y%m%d%H%M%S")
+
+cp -r $source_dir $backup_dir/backup_$timestamp
+echo "Backup completed at $backup_dir/backup_$timestamp"
+```
+
+---
+
+#### **Script 2 — Disk Usage Report**
+
+Checks disk space and alerts if usage exceeds threshold.
+
+```bash
+#!/bin/bash
+threshold=80
+usage=$(df / | grep / | awk '{ print $5 }' | sed 's/%//g')
+
+if [ $usage -gt $threshold ]; then
+    echo "⚠️ Warning: Disk usage is at ${usage}%"
+else
+    echo "✅ Disk usage is normal (${usage}%)"
+fi
+```
+
+---
+
+### 🧾 **9. Assignment Scripts for GitHub**
+
+#### **Assignment 1 — File Search Script**
+
+Searches for files of specific extension in a directory.
+
+```bash
+#!/bin/bash
+echo "Enter directory to search:"
+read dir
+echo "Enter file extension (e.g., .txt):"
+read extension
+
+find $dir -type f -name "*$extension"
+```
+
+---
+
+#### **Assignment 2 — System Health Check Script**
+
+Checks CPU load, memory, and disk usage.
+
+```bash
+#!/bin/bash
+echo "System Health Check Report"
+echo "---------------------------"
+
+cpu_load=$(uptime | awk '{ print $10 }')
+mem_usage=$(free -m | grep Mem | awk '{ print $3/$2 * 100.0 }')
+disk_usage=$(df -h | grep '^/dev' | awk '{ print $5 }')
+
+echo "CPU Load: $cpu_load"
+echo "Memory Usage: $mem_usage%"
+echo "Disk Usage: $disk_usage"
+```
+
+---
+
+### 🧩 **10. Summary**
+
+This topic covers:
+
+* Bash basics and syntax
+* Variables and user input
+* Conditional logic and loops
+* Practical system scripts
+* Assignments for DevOps automation
+
+**Key takeaway:**
+Mastering Bash scripting helps automate **server management**, **deployments**, and **DevOps CI/CD tasks** efficiently
