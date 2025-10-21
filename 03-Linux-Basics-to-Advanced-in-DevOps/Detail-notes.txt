@@ -1,0 +1,379 @@
+PART 1 – LINUX BASICS
+──────────────────────
+
+📘 History of Unix and Linux
+
+Origin of Unix
+──────────────
+- Developed in the 1970s at AT&T Bell Labs.
+- Written in C language, which made it portable across different hardware.
+- It was designed as a multi-user and multi-tasking operating system.
+
+Key Features of Unix
+- Philosophy: “Everything is a file”.
+- Modular design, simple, and easy to script.
+- Inspired many other OS like BSD, Solaris, AIX, and HP-UX.
+
+Birth of Linux
+──────────────
+- In 1991, Linus Torvalds created the **Linux Kernel** as a Unix-like system.
+- It was made **open source**, allowing anyone to modify or redistribute.
+- Combined with GNU tools from the Free Software Foundation to create a full OS known as **GNU/Linux**.
+
+Importance of Linux
+────────────────────
+- Linux runs most of the servers, cloud platforms, and supercomputers today.
+- It’s lightweight, secure, stable, and customizable — ideal for DevOps systems.
+
+Why Linux is Crucial in DevOps
+──────────────────────────────
+1. Most DevOps tools (Docker, Jenkins, Kubernetes) run on Linux.
+2. Linux allows scripting and automation using **Bash / Shell**.
+3. Essential for infrastructure management, deployment, and troubleshooting.
+
+Features of Linux (Important for DevOps)
+────────────────────────────────────────
+1. **Open Source** – Freely available, modifiable, customizable.  
+2. **Multi-User System** – Multiple users can work simultaneously.  
+3. **Multi-Tasking** – Runs multiple processes efficiently (important in CI/CD).  
+4. **Portability** – Runs on x86, ARM, and other architectures.  
+5. **Security** – Permissions, firewall, and encryption built-in.  
+6. **Stability** – Can run for years without reboot; ideal for servers.  
+7. **CLI (Command Line Interface)** – Core for automation using Bash or Python.  
+8. **Networking Support** – Built-in tools for network configuration and management.  
+9. **Wide Tool Support** – Works natively with Git, Jenkins, Docker, Kubernetes, etc.  
+10. **Package Management** – Use `apt`, `yum`, or `dnf` for easy installation.  
+
+──────────────────────────────────────────────
+📊 Comparison between Linux and Windows Architecture
+──────────────────────────────────────────────
+
+| Feature | Linux | Windows |
+|----------|--------|----------|
+| **Source Code** | Open-source; anyone can modify. | Closed-source; controlled by Microsoft. |
+| **Kernel Type** | Monolithic kernel (single large process). | Hybrid kernel (mix of monolithic & microkernel). |
+| **Command Line** | Strongly CLI dependent (bash, shell). | GUI-based; PowerShell for CLI. |
+| **User Interface** | GUI optional; CLI-focused. | Primarily GUI-based. |
+| **Package Management** | Uses `apt`, `yum`, `dnf`. | Uses `.exe` or `.msi` installers. |
+| **System Updates** | Fully user-controlled. | Often automatic; can restart system. |
+| **Security** | Strong permission model; fewer viruses. | Higher virus risk; more malware targeted. |
+| **Performance** | Lightweight; runs on older hardware. | Needs more system resources. |
+| **Server Usage** | Dominates servers and DevOps. | Used mainly on desktops. |
+| **Cost** | Mostly free distributions. | Requires paid license. |
+
+
+PART 2 – LINUX ADVANCED
+────────────────────────
+
+📂 File Creation in Linux
+─────────────────────────
+You can create files using:
+- `cat`
+- `touch`
+- `vi` or `vim`
+- `nano`
+
+Concepts:
+─────────
+I. Linux commands are **case-sensitive**.
+   - Example: `cat > file1` ≠ `cat > File1`
+
+II. User Types
+   - **Regular User:** Limited access to files, cannot modify system-wide settings.
+   - **Root User:** Full control of the system, can read/write/modify any file.
+
+III. Switching to Root User
+   Command: `sudo su`
+   - `sudo` = Super User Do
+   - `su` = Switch User
+   After switching, prompt changes to `[root@ip]#`
+
+IV. View Files
+   - `ls` → list files in current directory  
+   Example:
+[root@ip]# cat > file1.txt
+[root@ip]# ls
+file1.txt
+
+
+────────────────────────────
+1️⃣ CAT Command (Concatenate)
+────────────────────────────
+**Purpose:** Create, view, append, or merge files.
+
+Syntax:  
+`cat [options] [filename]`
+
+- Create file → `cat > filename.txt`  
+- Append content → `cat >> filename.txt`  
+- View file → `cat filename.txt`  
+- Merge files → `cat file1.txt file2.txt > merged.txt`
+
+Notes:
+- Cannot edit content inside a file.
+- Use `nano` or `vi` for editing.
+- `>` creates new/overwrites; `>>` appends.
+
+────────────────────────────
+2️⃣ TOUCH Command
+────────────────────────────
+**Purpose:** Create empty files or update timestamps.
+
+Syntax: `touch filename`
+
+Examples:
+- Create → `touch file1.txt`
+- Multiple → `touch file1 file2 file3`
+- Update timestamp → `touch existingfile.txt`
+- View timestamps → `stat filename`
+
+Options:
+- Update access time → `touch -a filename`
+- Update modify time → `touch -m filename`
+- Custom date → `touch -d "2025-05-04 12:30" filename`
+
+Notes:
+- Use `sudo` if permission denied.
+- Non-destructive (doesn’t delete data).
+- Widely used in DevOps scripts.
+
+────────────────────────────
+3️⃣ VI Editor (Visual Editor)
+────────────────────────────
+**Purpose:** Create or edit text/config files via terminal.
+
+Syntax: `vi filename`
+
+Steps:
+1. Create file: `vi myfile.txt`
+2. Press `i` → insert mode.
+3. Write content → e.g., "This is my test file".
+4. Press `Esc` → then type `:wq` to save & quit.
+5. View file → `cat myfile.txt`
+
+In DevOps, used to configure files directly on servers (e.g., Jenkins, Docker, etc.).
+
+────────────────────────────
+4️⃣ NANO Editor
+────────────────────────────
+**Purpose:** Easy terminal-based text editor for beginners.
+
+Steps:
+1. Open/Create → `nano file1.txt`
+2. Type your content
+3. Save → `Ctrl + O`
+4. Confirm filename → `Enter`
+5. Exit → `Ctrl + X`
+6. View file → `cat file1.txt`
+
+────────────────────────────
+PART 3 – WORKING WITH DIRECTORIES AND FILES
+────────────────────────────
+
+📁 Directory Basics
+- “dir” = directory (folder).
+- You can create directories inside other directories.
+- Cannot create file inside file.
+
+Differentiate file & directory:
+`ls -F`  
+- `/` → directory  
+- `*` → executable file  
+- no symbol → regular file  
+
+Example:
+dir/ → directory
+file.txt → regular file
+file.sh* → executable file
+
+
+────────────────────────────
+📂 Useful Directory Commands
+────────────────────────────
+
+| Task | Command | Notes |
+|------|----------|-------|
+| Create directory | mkdir devops | Creates folder named devops |
+| Create nested directories | mkdir -p devops/scripts | Creates inside parent dir |
+| List contents | ls | Displays directory items |
+| List hidden files | ls -a | Includes hidden “.” files |
+| Recursive listing | ls -R | Lists all subdirectories |
+| Change directory | cd dirname | Moves into given directory |
+| Go up one level | cd .. | Parent directory |
+| Go home | cd ~ | Home directory |
+| Show full path | pwd | Prints current path |
+| Copy directory | cp -r source target | Copies with content |
+| Rename / Move | mv old new | Renames or moves dir |
+| Delete directory | rm -r dirname | Deletes recursively |
+| Force delete | rm -rf dirname | Deletes without prompt (use carefully) |
+
+────────────────────────────
+📄 Useful File Commands
+────────────────────────────
+
+| Task | Command | Notes |
+|------|----------|-------|
+| Create empty file | touch file.txt | Empty file |
+| Create + write | cat > file.txt | Overwrites existing |
+| Append content | cat >> file.txt | Adds at the end |
+| View content | cat file.txt | Show text |
+| Scroll view | less file.txt | Navigate file |
+| Show first 10 lines | head file.txt | Use -n for custom lines |
+| Show last 10 lines | tail file.txt | Use -f to follow logs |
+| Copy file | cp source.txt copy.txt | Duplicate file |
+| Move/Rename | mv old.txt new.txt | Rename file |
+| Delete file | rm file.txt | Permanent delete |
+| Check details | ls -l file.txt | Shows size, permissions |
+| View timestamps | stat file.txt | Shows modify/access times |
+| Command history | history | Shows previous commands |
+
+────────────────────────────
+🔧 Common DevOps Linux Commands
+────────────────────────────
+
+| # | Command | Description | Example |
+|---|----------|--------------|----------|
+| 1 | hostname | Shows system name | hostname |
+| 2 | ip a | Displays IP info | ip a |
+| 3 | cat /etc/os-release | Shows OS details | cat /etc/os-release |
+| 4 | yum install | Installs software | yum install httpd |
+| 5 | yum remove | Uninstalls software | yum remove httpd |
+| 6 | service httpd start | Starts Apache | service httpd start |
+| 7 | chkconfig httpd on | Enables service on boot | chkconfig httpd on |
+| 8 | which / yum list | Checks command path or installed packages | which httpd |
+| 9 | whoami | Shows logged user | whoami |
+| 10 | echo | Prints text or variable | echo "Hello DevOps" |
+| 11 | grep | Searches text pattern | grep "error" /var/log/messages |
+| 12 | sort | Sorts data | sort names.txt |
+
+────────────────────────────
+🔧 Additional Linux Commands
+────────────────────────────
+
+| # | Command | Description | Example |
+|---|----------|--------------|----------|
+| 1 | useradd | Adds new user | useradd devuser |
+| 2 | groupadd | Creates new group | groupadd devgroup |
+| 3 | gpasswd -a | Adds user to group | gpasswd -a devuser devgroup |
+| 4 | ln -s | Creates symbolic (soft) link | ln -s /var/log/apache2 apachelogs |
+| 5 | ln | Creates hard link | ln file1 file2 |
+| 6 | tar -cvf | Creates archive file | tar -cvf backup.tar project/ |
+| 7 | gzip | Compresses file | gzip backup.tar |
+| 8 | wget | Downloads file from URL | wget https://example.com/file.txt |
+
+────────────────────────────
+PART 4 – LINUX FILE PERMISSIONS
+────────────────────────────
+
+🔐 What Are File Permissions?
+Every file/directory has specific permissions:
+- **r (read)** → view file contents
+- **w (write)** → modify file
+- **x (execute)** → run file or enter directory
+
+Why permissions are important:
+- Security – prevents unauthorized access.
+- Protection – avoids accidental deletions.
+- Control – restricts operations to certain users.
+
+────────────────────────────
+👥 User Categories
+────────────────────────────
+- **Owner:** File creator.
+- **Group:** Team of users with similar permissions.
+- **Others:** All other system users.
+
+────────────────────────────
+🧮 Permission Values (Octal Representation)
+────────────────────────────
+| Permission | Symbol | Value |
+|-------------|---------|--------|
+| Read | r | 4 |
+| Write | w | 2 |
+| Execute | x | 1 |
+
+Examples:
+- 7 = rwx
+- 6 = rw-
+- 5 = r-x
+- 4 = r--
+- 0 = ---
+
+────────────────────────────
+🔧 Basic Permission Commands
+────────────────────────────
+1. Create files → `touch file1 file2 file3`
+2. View permissions → `ls -l`
+
+Symbolic Method:
+- Remove read → `chmod -r file1`
+- Add write → `chmod +w file2`
+- Add execute → `chmod a+x file3`
+- Owner full access → `chmod u+rwx file1`
+- Remove others → `chmod o-rwx file2`
+
+Numeric Method:
+- Syntax → `chmod 754 file1`
+- Meaning → owner=rwx (7), group=r-x (5), others=r--
+
+────────────────────────────
+👑 Changing File Ownership
+────────────────────────────
+You must be file owner to change access.
+
+Commands:
+- Change owner → `sudo chown newowner file1`
+- Change group → `sudo chown :newgroup file1`
+- Change both → `sudo chown newowner:newgroup file1`
+
+────────────────────────────
+📄 Reading `ls -l` Output
+────────────────────────────
+Example:
+`-rwxr-x--x 1 root root 4096 May 5 12:00 file1`
+
+Explanation:
+- `-` = file, `d` = directory  
+- `rwx` = owner permissions  
+- `r-x` = group permissions  
+- `--x` = others permissions  
+- `root root` = owner/group  
+- `4096` = file size (bytes)  
+- `May 5` = modified date  
+
+────────────────────────────
+📁 Directory Example
+────────────────────────────
+Example:
+`drwxr-xr-x 2 root root 4096 May 5 12:05 mydir`
+
+Symbol meaning:
+- `d` → directory
+- `rwx` → owner can access, write, and execute
+- `r-x` → group can access and list files
+- `r-x` → others can list files only
+
+────────────────────────────
+⚙️ Quick chmod Cheatsheet
+────────────────────────────
+| Task | Symbolic Command | Numeric |
+|------|-------------------|----------|
+| Add execute to owner | chmod u+x file | 744 |
+| Remove write from group | chmod g-w file | 644 |
+| Full access to all | chmod a+rwx file | 777 |
+| Owner read/write only | chmod 600 file |
+| Make script executable | chmod +x script.sh |
+
+────────────────────────────
+✅ Final Tips
+────────────────────────────
+- Use `ls -l` to verify permissions.
+- Use `chmod` to modify access.
+- Use `chown` to change owner/group.
+- Always test permissions on dummy files.
+- Use symbolic mode for readability; numeric for automation.
+
+────────────────────────────
+END OF TOPIC 3 – LINUX IN DEVOPS (BASICS TO ADVANCED)
+────────────────────────────
+
