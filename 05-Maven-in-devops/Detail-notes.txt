@@ -1,0 +1,178 @@
+Maven (Introduction + Advanced Build Management)**
+
+This follows the same DevOps documentation pattern you’re using — conceptual + practical + assignment format.
+
+---
+
+## 🧾 **details.txt — Topic 5: Maven (Introduction + Advanced Build Management)**
+
+---
+
+### 📘 **1. What is Maven?**
+
+**Maven** is a **build automation and project management tool** mainly used for **Java-based projects**.
+It simplifies compiling, testing, packaging, and deploying applications using a **standard project structure** and the **pom.xml configuration file**.
+
+#### ✅ **Key Features**
+
+* Automates project build process
+* Manages dependencies automatically
+* Standardizes project structure
+* Uses `pom.xml` for configuration
+* Supports plugins for testing, packaging, and deployment
+
+---
+
+### ⚙️ **2. Maven Build Management**
+
+Maven defines a **build lifecycle** — a set of steps for compiling, testing, and packaging your code.
+
+**Maven automates:**
+
+* Code compilation
+* Test execution
+* Packaging into `.jar` or `.war`
+* Deployment of artifacts to repositories
+
+---
+
+### 🧪 **3. Practical Work (Basic)**
+
+#### ✅ **Task: Install Maven and Build a Simple Project**
+
+**🔧 Step 1 – Install Maven on Linux**
+
+```bash
+sudo apt update
+sudo apt install maven
+mvn -version
+```
+
+> Verifies Maven installation and shows version.
+
+---
+
+**🔧 Step 2 – Create a Simple Maven Project**
+
+```bash
+mvn archetype:generate -DgroupId=com.example \
+-DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart \
+-DinteractiveMode=false
+```
+
+> This creates a ready-to-use Maven project with basic folder structure.
+
+---
+
+**🔧 Step 3 – Navigate & Build the Project**
+
+```bash
+cd my-app
+mvn clean install
+```
+
+> This command compiles code, runs tests, and generates a `.jar` file inside `target/`.
+
+---
+
+🎯 **Assignment Task (Basic)**
+
+* Create a Maven project using the above command.
+* Run `mvn clean install`.
+* Confirm that `.jar` is generated inside `target/`.
+
+---
+
+### 🚀 **4. Maven Advanced Topics**
+
+---
+
+#### 📄 **Understanding `pom.xml`**
+
+**`pom.xml` (Project Object Model)** is the **core configuration file** of Maven.
+It defines project details, build settings, and dependencies.
+
+**Includes:**
+
+* Project metadata (name, version, description)
+* Dependencies (external libraries)
+* Plugins
+* Build instructions
+
+---
+
+#### 📦 **Dependencies in Maven**
+
+A **dependency** is an external library your project needs.
+Maven automatically downloads required dependencies from the **Maven Central Repository** — no manual downloads needed.
+
+**📌 Example:**
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.13.1</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+```
+
+---
+
+### 🧪 **5. Practical Work (Advanced)**
+
+#### ✅ **Task: Modify `pom.xml` and Add a Dependency**
+
+**🔧 Step 1 – Open your Maven project**
+
+```bash
+cd my-app
+```
+
+**🔧 Step 2 – Edit `pom.xml`**
+Add this inside `<dependencies>`:
+
+```xml
+<dependency>
+  <groupId>org.apache.commons</groupId>
+  <artifactId>commons-lang3</artifactId>
+  <version>3.12.0</version>
+</dependency>
+```
+
+**🔧 Step 3 – Rebuild the Project**
+
+```bash
+mvn clean install
+```
+
+> Maven will automatically download `commons-lang3` and rebuild the project successfully.
+
+---
+
+🎯 **Assignment Task (Advanced)**
+
+* Edit your Maven project’s `pom.xml`.
+* Add a dependency like `commons-lang3`.
+* Run `mvn clean install` again.
+* Verify that Maven downloads the new dependency and builds successfully.
+
+---
+
+### 🧩 **6. Summary: What You Learned**
+
+| Concept             | Practical Task                               |
+| ------------------- | -------------------------------------------- |
+| **What is Maven**   | Install and verify Maven setup               |
+| **Build Lifecycle** | Generate and build a project                 |
+| **pom.xml File**    | Edit configuration and add project metadata  |
+| **Dependencies**    | Add external library and rebuild the project |
+
+---
+
+✅ Conclusion
+
+You’ve learned the complete workflow of Maven — from installation to advanced dependency management.
+Maven is a core DevOps tool that simplifies Java project automation, dependency handling, and build lifecycle management — making it essential for CI/CD pipelines and deployment automation.
