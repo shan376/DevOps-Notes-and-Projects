@@ -1,0 +1,217 @@
+
+1. What is Cloud Computing?
+────────────────────────────
+Cloud computing is the delivery of computing services like servers, storage, databases,
+networking, software, and analytics over the internet (“the cloud”).  
+Instead of buying, owning, and maintaining physical data centers or servers, you can access
+technology services such as computing power or storage on demand from a cloud provider
+like Amazon Web Services (AWS), Microsoft Azure, or Google Cloud Platform (GCP).
+
+Cloud computing provides flexibility, scalability, cost-effectiveness, and high availability.
+It allows organizations to deploy applications quickly without worrying about hardware setup.
+
+Examples:
+- Google Drive (stores files on Google’s cloud servers)
+- AWS EC2 (virtual machine for running applications)
+- Dropbox (cloud-based file storage)
+
+Use case:
+- Deploying web servers
+- Hosting applications
+- Managing scalable infrastructure without owning hardware
+
+
+2. Types of Cloud Models
+────────────────────────
+Cloud computing is generally divided into three main deployment models:
+
+a. Public Cloud
+   - Services are offered over the internet by third-party providers like AWS, Azure, and GCP.
+   - Shared resources and infrastructure are used by multiple customers.
+   - Cost-effective, scalable, and managed by the provider.
+   Example: Hosting a website on AWS or storing files on S3.
+
+b. Private Cloud
+   - Dedicated infrastructure used by a single organization.
+   - Managed internally or by a third party, often hosted on-premises.
+   - Provides higher security and control.
+   Example: Banking systems or internal enterprise applications.
+
+c. Hybrid Cloud
+   - Combination of both public and private clouds.
+   - Enables data and applications to move between the two environments.
+   - Offers flexibility to keep sensitive data private while using public resources for scalability.
+   Example: Storing confidential data on private servers and using AWS for testing/development.
+
+
+3. AWS Cloud Provides Three Main Facilities
+────────────────────────────────────────────
+AWS offers services across three cloud delivery models:
+
+❖ Infrastructure as a Service (IaaS)
+   - Provides virtualized computing resources such as servers, storage, and networking.
+   - You manage the operating system, applications, and configurations.
+   - AWS manages the hardware, virtualization, and data centers.
+   Examples: AWS EC2, Google Compute Engine.
+   Use Case: Running custom web servers, CI/CD tools, or databases.
+
+❖ Platform as a Service (PaaS)
+   - Provides hardware and software tools over the internet.
+   - Allows developers to focus only on writing and deploying code.
+   - The platform automatically handles scaling, load balancing, and OS updates.
+   Examples: AWS Elastic Beanstalk, Google App Engine, Heroku.
+   Use Case: Quickly deploy web applications without managing infrastructure.
+
+❖ Software as a Service (SaaS)
+   - Ready-to-use software applications delivered via the internet.
+   - No need to install, configure, or maintain.
+   Examples: Gmail, Dropbox, Salesforce.
+   Use Case: For end users who just need application access.
+
+Note:
+In this DevOps learning journey, we mainly focus on **IaaS**, specifically **AWS EC2**,
+as it provides full control over infrastructure which is essential for DevOps tools setup.
+
+
+4. AWS Global Infrastructure
+─────────────────────────────
+AWS operates one of the largest cloud infrastructures in the world. It ensures
+high availability, fault tolerance, low latency, and disaster recovery.
+
+Main Components:
+
+a. Regions
+   - Geographical areas where AWS data centers are located.
+   - Each region consists of multiple Availability Zones (AZs).
+   - Example: us-east-1 (Virginia), ap-south-1 (Mumbai)
+
+b. Availability Zones (AZs)
+   - Independent data centers within a region.
+   - Each AZ has separate power and networking, connected via low-latency fiber.
+   - Deploying applications across multiple AZs ensures zero downtime.
+
+c. Edge Locations
+   - Data caching points across the globe.
+   - Used by AWS CloudFront (CDN) to deliver content faster to end users.
+
+
+5. Applications of AWS
+──────────────────────
+AWS services are used in multiple domains, including:
+- Website Hosting
+- Application Development and Deployment
+- Big Data Processing and Analytics
+- Machine Learning & Artificial Intelligence
+- Backup, Storage, and Disaster Recovery
+- CI/CD Pipelines and Automation in DevOps
+
+
+6. Core AWS Services Used in DevOps
+───────────────────────────────────
+a. Compute
+   - EC2 (Elastic Compute Cloud): Virtual servers to host applications, build tools, or automation.
+   - Auto Scaling: Automatically adjusts the number of instances based on demand.
+   - Elastic Load Balancer (ELB): Distributes traffic evenly across instances.
+
+b. Storage
+   - S3 (Simple Storage Service): Object-based storage for backups, logs, artifacts, etc.
+   - EBS (Elastic Block Store): Persistent block storage attached to EC2 instances.
+
+c. Networking
+   - VPC (Virtual Private Cloud): Isolated virtual network in AWS.
+   - Security Groups: Control inbound and outbound traffic for EC2.
+   - Internet Gateway & Subnets: Enable public and private communication.
+
+d. IAM (Identity and Access Management)
+   - Provides secure access to AWS services.
+   - IAM Users: Individual access accounts.
+   - IAM Roles & Policies: Define permissions for DevOps tools like Jenkins or Ansible.
+
+
+7. DevOps-Specific AWS Services
+────────────────────────────────
+These AWS services directly support DevOps automation:
+
+- **CodePipeline:** Orchestrates CI/CD pipelines for automatic build and deployment.
+- **CodeCommit:** Source control service to manage repositories (Git-based).
+- **CodeBuild:** Automates build and testing processes.
+- **CodeDeploy:** Automates deployment to EC2 or on-prem servers.
+- **CloudWatch:** Monitors application logs and performance metrics.
+- **CloudFormation:** Manages resources using Infrastructure as Code (IaC).
+
+
+8. Tools Commonly Installed on EC2 for DevOps
+─────────────────────────────────────────────
+When setting up a DevOps environment, commonly used tools include:
+- Git (version control)
+- Jenkins (automation server)
+- Docker (containerization)
+- Ansible / Chef (configuration management)
+- Kubernetes / Minikube / K3s (container orchestration)
+
+
+9. AWS Account Creation Procedure
+────────────────────────────────
+Step 1: Go to AWS Website
+   - Visit https://aws.amazon.com/
+   - Click “Create an AWS Account”
+
+Step 2: Enter Basic Information
+   - Provide email address, password, and account name.
+
+Step 3: Contact Information
+   - Choose “Personal Account” and enter full name, phone number, and address.
+
+Step 4: Payment Information
+   - Add credit or debit card details (for verification only).
+   - Free Tier services are free for 12 months.
+
+Step 5: Identity Verification
+   - Enter the OTP sent to your registered phone.
+
+Step 6: Choose Support Plan
+   - Select “Basic (Free)” support plan.
+
+Step 7: AWS Account Ready
+   - Sign in at https://console.aws.amazon.com/
+
+
+10. Launch a Linux EC2 Instance (Linux Machine)
+───────────────────────────────────────────────
+Step 1: Go to EC2 Dashboard
+   - Log in to AWS Console → Search for “EC2”.
+   - Click “Instances” in the EC2 service.
+
+Step 2: Launch a New Instance
+   - Click “Launch Instance”.
+
+Step 3: Configure Instance Details
+   - Name: Example – MyLinuxVM
+   - OS: Choose Amazon Linux 2 or Ubuntu
+   - Instance Type: Select t2.micro (Free Tier eligible)
+
+Step 4: Key Pair (Login)
+   - Create a new key pair (e.g., mykey.pem) and download it.
+   - Keep it safe; it’s required for SSH login.
+
+Step 5: Network Settings
+   - Allow SSH (Port 22) from your IP.
+   - HTTP (Port 80) can be enabled later if hosting a web server.
+
+Step 6: Launch
+   - Click “Launch Instance”.
+   - Wait until the instance status is “Running”.
+
+Step 7: Connect to Your Linux Instance
+   - Select your instance → Click “Connect”.
+   - Choose “SSH Client” tab and follow the commands below:
+
+chmod 400 mykey.pem
+ssh -i "mykey.pem" ec2-user@<Public-IP>
+
+You are now connected to your EC2 Linux instance.
+This instance can be used for installing DevOps tools such as Git, Jenkins, or Docker.
+
+
+End of Topic 2 – Basics of AWS Cloud Used in DevOps
+────────────────────────────────────────────────────
