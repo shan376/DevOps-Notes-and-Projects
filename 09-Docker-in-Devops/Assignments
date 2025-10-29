@@ -1,0 +1,110 @@
+# 🧩 **Assignments**
+
+---
+
+### **🎯 Assignment 1: Pull and Run Nginx Container (Docker Basics – Part 1)**
+
+**Objective:**
+Pull the Nginx image from Docker Hub and run it on your local machine.
+
+**Steps:**
+
+1. Pull the Nginx image:
+
+   ```
+   docker pull nginx
+   ```
+2. Run the Nginx container:
+
+   ```
+   docker run -d -p 8080:80 nginx
+   ```
+3. Verify:
+   Open a web browser and navigate to
+
+   ```
+   http://localhost:8080
+   ```
+
+   You should see the default Nginx welcome page.
+
+---
+
+### **🎯 Assignment 2: Create Your Own Containerized App (Docker Advanced – Part 2)**
+
+**Objective:**
+Containerize a simple web application (for example, a Python Flask app or a Node.js app).
+
+**Steps:**
+
+1. Create a new application (Flask or Node.js).
+2. Create a Dockerfile for the app (similar to the one above).
+3. Add necessary dependencies in:
+
+   * `requirements.txt` (for Python) or
+   * `package.json` (for Node.js).
+4. Build the Docker image:
+
+   ```
+   docker build -t <app_name> .
+   ```
+5. Run the container:
+
+   ```
+   docker run -d -p <host_port>:<container_port> <app_name>
+   ```
+6. Test the app:
+   Visit
+
+   ```
+   http://localhost:<host_port>
+   ```
+
+   to verify the application is running successfully.
+
+---
+
+### **🎯 Assignment 3: Create WordPress + MySQL with Docker Compose (Docker Compose – Part 3)**
+
+**Objective:**
+Set up a WordPress website with a MySQL database using Docker Compose.
+
+**Steps:**
+
+1. Create a directory to store your `docker-compose.yml`.
+2. Define services for WordPress and MySQL in the `docker-compose.yml` file.
+3. Configure environment variables for both services (e.g., database credentials).
+4. Use volumes to persist MySQL data.
+5. Set up a network for communication between containers.
+6. Run the setup:
+
+   ```
+   docker-compose up -d
+   ```
+7. Verify:
+   Visit
+
+   ```
+   http://localhost:8080
+   ```
+
+   and complete the WordPress installation.
+
+**Commands:**
+
+* Start the setup:
+
+  ```
+  docker-compose up -d
+  ```
+* View logs:
+
+  ```
+  docker-compose logs
+  ```
+* Stop the setup:
+
+  ```
+  docker-compose down
+  ```
+

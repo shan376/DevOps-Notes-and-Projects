@@ -1,0 +1,287 @@
+# 🐳 Docker Detailed Notes
+
+## **Docker Basics (Part 1)**
+
+### **1. Containers, Images, and Registries in Docker**
+
+**What is Docker?**
+Docker is a platform used to develop, ship, and run applications in containers. Containers are lightweight and portable, allowing applications to run consistently across different environments.
+
+**Docker Containers**
+A container is a lightweight, standalone package that includes everything needed to run software — code, runtime, tools, libraries, and settings.
+
+**Benefits:**
+
+* Portability (run anywhere)
+* Consistency across environments
+* Isolation between containers
+
+**Commands:**
+
+```
+docker run <image_name>
+docker ps
+docker stop <container_id>
+docker rm <container_id>
+```
+
+**Docker Images**
+Images are snapshots used to create containers. They include applications and dependencies.
+
+**Benefits:**
+
+* Versioning
+* Reuse
+* Layered architecture
+
+**Commands:**
+
+```
+docker build -t <image_name> <path>
+docker images
+docker rmi <image_id>
+```
+
+**Docker Registries**
+Registries store and distribute Docker images (like Docker Hub or private registries).
+
+**Commands:**
+
+```
+docker login
+docker push <image_name>
+docker pull <image_name>
+```
+
+---
+
+### **🔧 Practical Work: Install Docker and Run a Container**
+
+1. Install Docker on Ubuntu
+
+```
+sudo apt update  
+sudo apt install docker.io  
+sudo systemctl start docker  
+sudo systemctl enable docker  
+```
+
+2. Run Nginx container
+
+```
+docker run -d -p 8080:80 nginx
+```
+
+3. Check running containers
+
+```
+docker ps
+```
+
+---
+
+### **🎯 Assignment: Pull and Run Nginx Container**
+
+**Objective:** Pull Nginx image and run it locally.
+**Steps:**
+
+1. `docker pull nginx`
+2. `docker run -d -p 8080:80 nginx`
+3. Verify: Visit `http://localhost:8080`
+
+**Summary:**
+
+* Containers: Lightweight environments
+* Images: Container blueprints
+* Registries: Store and share images
+
+---
+
+## **Docker Advanced (Part 2)**
+
+### **1. Dockerfile, Volumes, and Networking**
+
+**Dockerfile**
+A script that defines how to build Docker images.
+**Benefits:**
+
+* Reproducibility
+* Automation
+* Version control
+
+**Example Dockerfile:**
+
+```dockerfile
+FROM python:3.8-slim
+WORKDIR /app
+COPY . /app
+RUN pip install --no-cache-dir -r requirements.txt
+EXPOSE 80
+CMD ["python", "app.py"]
+```
+
+**Commands:**
+
+* FROM → Base image
+* COPY → Copy files
+* RUN → Execute commands
+* EXPOSE → Open port
+* CMD → Start command
+
+---
+
+**Docker Volumes**
+Used to persist data outside of containers.
+
+**Commands:**
+
+```
+docker volume create <volume_name>
+docker run -v <volume_name>:/path/in/container <image_name>
+docker volume ls
+docker volume rm <volume_name>
+```
+
+---
+
+**Docker Networking**
+Enables communication between containers.
+
+**Types:**
+
+* Bridge
+* Host
+* Overlay
+
+**Commands:**
+
+```
+docker network create <network_name>
+docker network ls
+docker run --network <network_name> <image_name>
+```
+
+---
+
+### **🔧 Practical Work: Build Dockerfile and Custom Image**
+
+1. Create `app.py` and `requirements.txt`
+2. Write a Dockerfile
+3. Build image
+
+```
+docker build -t python-app .
+```
+
+4. Run container
+
+```
+docker run -d -p 5000:80 python-app
+```
+
+5. Verify at `http://localhost:5000`
+
+---
+
+### **🎯 Assignment: Create Your Own Containerized App**
+
+**Objective:** Containerize a Flask or Node.js app.
+**Steps:**
+
+1. Create app and Dockerfile
+2. Add dependencies
+3. Build image → `docker build -t <app_name> .`
+4. Run → `docker run -d -p <host_port>:<container_port> <app_name>`
+5. Test at `http://localhost:<host_port>`
+
+**Summary:**
+
+* Dockerfile → Automates image creation
+* Volumes → Persist data
+* Networking → Enables container communication
+
+---
+
+## **Docker Compose (Part 3)**
+
+**What is Docker Compose?**
+A tool for defining and managing multi-container applications with a YAML file (`docker-compose.yml`).
+
+**Benefits:**
+
+* Simplifies multi-container setup
+* Manages service dependencies
+* Ensures consistent environments
+
+---
+
+**Example docker-compose.yml:**
+
+```yaml
+version: '3'
+services:
+  web:
+    image: nginx
+    ports:
+      - "8080:80"
+  db:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+volumes:
+  db-data:
+```
+
+---
+
+### **🔧 Practical Work: WordPress + MySQL Setup**
+
+1. Create `docker-compose.yml`
+2. Add WordPress and MySQL services
+3. Run setup
+
+```
+docker-compose up -d
+```
+
+4. Verify at `http://localhost:8080`
+5. Stop setup
+
+```
+docker-compose down
+```
+
+---
+
+### **🎯 Assignment: Create WordPress + MySQL Setup**
+
+**Objective:** Deploy WordPress with MySQL using Compose.
+**Steps:**
+
+* Define services in YAML
+* Add volumes and network
+* Run: `docker-compose up -d`
+* Verify WordPress installation at `localhost:8080`
+  **Commands:**
+
+```
+docker-compose up -d
+docker-compose logs
+docker-compose down
+```
+
+---
+
+## **Summary of All Parts**
+
+* **Part 1:** Containers, Images, Registries, and Nginx setup.
+* **Part 2:** Dockerfile, Volumes, Networking, and App containerization.
+* **Part 3:** Docker Compose for multi-container setups (WordPress + MySQL).
+
+**Key Takeaways:**
+
+* Docker simplifies deployment and ensures consistency.
+* Dockerfile automates builds.
+* Volumes persist data.
+* Compose manages multi-container systems easily.
+

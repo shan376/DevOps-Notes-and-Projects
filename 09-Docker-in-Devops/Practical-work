@@ -1,0 +1,123 @@
+
+# 🧠 **Practical Work**
+
+---
+
+### **🔧 Practical Work: Install Docker and Run a Container (Docker Basics - Part 1)**
+
+1. **Install Docker (on Ubuntu)**
+
+   ```
+   sudo apt update  
+   sudo apt install docker.io  
+   sudo systemctl start docker  
+   sudo systemctl enable docker
+   ```
+
+   > This installs Docker on your system and ensures it starts with the system.
+
+2. **Run a Docker Container**
+   Example: Running an Nginx container
+
+   ```
+   docker run -d -p 8080:80 nginx
+   ```
+
+   * `-d`: Runs the container in detached mode (background).
+   * `-p 8080:80`: Maps port 80 inside the container to port 8080 on your machine.
+
+3. **Check running containers**
+
+   ```
+   docker ps
+   ```
+
+   > This command lists the running containers.
+
+---
+
+### **🔧 Practical Work: Build Dockerfile and Custom Image (Docker Advanced - Part 2)**
+
+1. **Create a Dockerfile for a simple Python application:**
+
+   * Create a Python application (`app.py`) and a `requirements.txt` file in the current directory.
+   * Write a Dockerfile (as shown above) to build the image.
+
+2. **Build the image:**
+
+   ```
+   docker build -t python-app .
+   ```
+
+3. **Run the container:**
+
+   ```
+   docker run -d -p 5000:80 python-app
+   ```
+
+4. **Verify the container:**
+
+   * Open a browser and visit `http://localhost:5000` to see the Python app running inside the container.
+
+---
+
+### **🔧 Practical Work: Setting Up a Multi-Container Environment (Docker Compose - Part 3)**
+
+**Task:** WordPress + MySQL Setup Using Docker Compose
+
+1. **Create a `docker-compose.yml` file:**
+   Example content:
+
+   ```yaml
+   version: '3.8'
+   services:
+     wordpress:
+       image: wordpress:latest
+       ports:
+         - "8080:80"
+       environment:
+         WORDPRESS_DB_HOST: db:3306
+         WORDPRESS_DB_NAME: exampledb
+         WORDPRESS_DB_USER: root
+         WORDPRESS_DB_PASSWORD: example
+       networks:
+         - wordpress-network
+
+     db:
+       image: mysql:5.7
+       environment:
+         MYSQL_ROOT_PASSWORD: example
+         MYSQL_DATABASE: exampledb
+       volumes:
+         - wordpress-data:/var/lib/mysql
+       networks:
+         - wordpress-network
+
+   volumes:
+     wordpress-data:
+
+   networks:
+     wordpress-network:
+       driver: bridge
+   ```
+
+   > WordPress is the web app, MySQL is the database.
+   > Volumes store data and networks allow them to communicate.
+
+2. **Start the services:**
+
+   ```
+   docker-compose up -d
+   ```
+
+3. **Verify:**
+
+   * Access WordPress via `http://localhost:8080`.
+   * You should see the WordPress installation page.
+
+4. **Stop the services:**
+
+   ```
+   docker-compose down
+   ```
+
