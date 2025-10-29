@@ -1,0 +1,184 @@
+📘 DevOps Notes – Topic 17: AWS CLI
+(Install, Configure & Lab Practice)
+🎯 Goal:
+Use AWS services (EC2, S3) from terminal using CLI, with IAM authentication.
+
+🔹 1. What is AWS CLI?
+📌 Concept:
+AWS CLI (Command Line Interface) ek command-line tool hai jo AWS ke resources ko
+terminal se manage karne ka moka deta hai — bina browser open kiye.
+📘 Roman Urdu:
+CLI ka matlab hai terminal se kaam lena. Console ki jagah, aap aws command likh ke EC2, S3
+jaisi services chala sakte ho.
+🧠 Real-life Example:
+DevOps engineer ko auto-scripts likhne hote hain jismein EC2 start/stop, S3 backup upload
+automate hota hai — ye sab CLI se hota hai.
+
+🧩 2. AWS CLI Installation (Ubuntu)
+✅ Manual Method (Preferred):
+Auto install (apt install awscli) se purana version ya error aa sakta hai, use avoid karein.
+🔧 Steps:
+
+1. Download AWS CLI:
+   curl "[https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip](https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip)" -o "awscliv2.zip"
+2. Install unzip if not already:
+   sudo apt install unzip -y
+3. Unzip downloaded file:
+   unzip awscliv2.zip
+4. Install AWS CLI:
+   sudo ./aws/install
+   ✅ AWS CLI successfully installed.
+
+🧩 3. Check CLI Version
+aws --version
+✅ Output:
+aws-cli/2.x.x Python/3.x.x Linux
+📘 Roman Urdu: Yeh check karta hai ke CLI install hui ya nahi.
+
+🧩 4. IAM Setup (User + Policy)
+🔸 Why?
+AWS CLI ko use karne ke liye IAM user ki access keys chahiye jismein permissions defined hon
+(EC2 start/stop, S3 upload, etc.).
+🔸 Steps: Create IAM User (Programmatic access)
+
+1. Go to IAM → Users → Add user
+2. Enter user name (e.g., cli-user)
+3. Select ✅ Programmatic access
+4. Click Next till "Permissions"
+
+🔸 Steps: Create Custom IAM Policy
+Go to: IAM → Policies → Create Policy → JSON tab
+
+```
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": [
+"ec2:StartInstances",
+"ec2:StopInstances",
+"s3:*"
+],
+"Resource": "*"
+}
+]
+}
+```
+
+📝 Policy Name: DevOpsCLIPolicy
+📘 Roman Urdu: Yeh permission de raha hai ke user EC2 aur S3 ko use kar sakta hai CLI se.
+
+🔸 Attach Policy to IAM User
+
+1. IAM → Users → Select cli-user
+2. Click Permissions → Add permissions
+3. Select Attach policies directly
+4. Choose your policy: DevOpsCLIPolicy
+5. Click Add permissions
+
+🧩 5. Configure AWS CLI
+aws configure
+🛠 Yeh 4 cheezein poochta hai:
+
+| Prompt                | Explanation                 |
+| --------------------- | --------------------------- |
+| AWS Access Key ID     | IAM user ka access key      |
+| AWS Secret Access Key | IAM user ka secret key      |
+| Default region name   | e.g., us-east-1, ap-south-1 |
+| Default output format | json, text, or table        |
+
+🧩 New Access Key Generate Karna (for Existing IAM User)
+
+1. Login to AWS Console
+2. Go to IAM Service
+3. Left sidebar → Click Users
+4. Click on your IAM user name
+5. Go to Security credentials tab
+6. Scroll to Access keys section
+7. Click on Create access key
+8. Choose “Use for CLI, SDK, etc.” → Click Next
+9. (Optional) Add description → Click Create access key
+10. ✅ Now you will get:
+    o Access Key ID → Copy this
+    o Secret Access Key → Copy this immediately (⚠️ ye dobara nahi dikhegi)
+    o 💾 CSV file download karlo for backup
+    📘 Roman Urdu: Ye setup CLI config karta hai. Access key & region waghaira set hoti hain.
+
+✅ Config files:
+• ~/.aws/credentials
+• ~/.aws/config
+
+🧩 6. S3 – Concept & Purpose
+📌 What is S3?
+S3 = Simple Storage Service. AWS ka object storage system hai jismein aap koi bhi file ya
+folder securely rakh sakte ho.
+📘 Roman Urdu:
+S3 bucket ek cloud folder ki tarah hoti hai. Aap usmein files, images, ya logs daal ke rakh sakte
+ho.
+
+🔧 S3 Use Cases:
+• Website file hosting
+• Backup & logs
+• File sharing via public/private URL
+
+🧩 7. CLI Lab Practice – EC2 & S3
+✅ (A) List EC2 Instances
+aws ec2 describe-instances
+📘 CLI se sab EC2 instance ka detail (state, IP, ID) milta hai.
+
+✅ (B) List All S3 Buckets
+aws s3 ls
+📘 AWS account mein jitni buckets hain unki list aayegi.
+
+✅ (C) Create New S3 Bucket
+aws s3 mb s3://my-devops-bucket-172
+✅ Bucket name globally unique hona chahiye.
+
+📄 Create a File
+cat > myfile.txt
+
+✅ (D) Upload File to Bucket
+aws s3 cp myfile.txt s3://my-devops-bucket-172/
+📘 cp ka matlab hota hai copy. Yeh file cloud mein daal deta hai.
+
+✅ (E) Verify File Upload
+aws s3 ls s3://my-devops-bucket-172/
+📘 Isse bucket ke andar ki files dikhti hain.
+
+🧩 8. Uninstall & Reinstall AWS CLI (Optional)
+🔸 Uninstall AWS CLI v2:
+sudo rm -rf /usr/local/aws-cli
+sudo rm /usr/local/bin/aws
+📝 Note:
+/usr/local/bin/aws is AWS CLI path.
+Check with command:
+which aws
+🧪 To check if CLI is removed:
+aws --version
+
+🔸 Reinstall AWS CLI:
+sudo ./aws/install
+📘 Useful agar corrupt install ho ya upgrade karna ho.
+
+🧩 9. Concept Recap Table
+
+| Topic                      | Roman Urdu Explanation                        |
+| -------------------------- | --------------------------------------------- |
+| AWS CLI                    | AWS terminal se use karne ka tool             |
+| IAM User                   | CLI ke liye permission wala user              |
+| Policy                     | EC2 start, S3 access jaise actions ki ijaazat |
+| Access Key / Secret        | CLI authentication ke liye zaroori keys       |
+| aws configure              | CLI credentials aur region set karna          |
+| aws ec2 describe-instances | EC2 instance ki list lena                     |
+| aws s3 mb                  | New S3 bucket banana                          |
+| aws s3 cp                  | File ko S3 bucket mein upload karna           |
+| aws s3 ls                  | Buckets ya files list karna                   |
+
+✅ Final Checklist
+• ✔ AWS CLI installed (manual method)
+• ✔ IAM user + custom policy created & attached
+• ✔ CLI configured with access key & region
+• ✔ EC2 instances listed
+• ✔ S3 bucket created & file uploaded
+
