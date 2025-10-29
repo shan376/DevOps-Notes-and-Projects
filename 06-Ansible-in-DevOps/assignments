@@ -1,0 +1,75 @@
+Here’s **only the Assignment section** extracted exactly from your provided data — without any extra additions or edits:
+
+---
+
+### **Assignment 1: Setup Simple Playbook and Run**
+
+**Objective:**
+• Create a playbook to install Nginx on multiple servers.
+• Use the inventory file to specify the target servers.
+• Run the playbook to automate the installation of Nginx.
+
+**Steps:**
+
+1. Create the inventory file (`inventory.ini`) listing your servers.
+2. Write a playbook (`install_nginx.yml`) to install Nginx on the servers.
+3. Run the playbook using the command:
+
+   ```
+   ansible-playbook install_nginx.yml -i inventory.ini
+   ```
+4. Verify if Nginx is installed and running on the servers.
+
+---
+
+### **Assignment 2: Deploy an App Using Ansible Role**
+
+**Objective:**
+• Deploy a simple web application (e.g., Nginx with custom HTML) using an Ansible role.
+
+**Steps:**
+
+1. Create an Ansible Role for the web application deployment.
+
+   * Define tasks to install Nginx.
+   * Create a template for a simple HTML page (`index.html.j2`).
+   * Define necessary variables (e.g., `app_name`, `html_content`).
+2. Define the Variables:
+
+   * In `vars/main.yml`, define the application variables.
+
+     ```
+     app_name: "my_website"
+     html_content: "<h1>Welcome to {{ app_name }}!</h1>"
+     ```
+3. Create Template for HTML Page:
+
+   * Create a template file (`templates/index.html.j2`):
+
+     ```
+     <html>
+     <head>
+       <title>{{ app_name }}</title>
+     </head>
+     <body>
+       {{ html_content }}
+     </body>
+     </html>
+     ```
+4. Write a Playbook to Deploy the App:
+
+   * The playbook will install Nginx, copy the HTML template to the server, and start the Nginx service.
+
+     ```
+     ---
+     - hosts: webservers
+       roles:
+         - web_app_role
+     ```
+5. Run the Playbook:
+
+   * Execute the playbook to deploy the application:
+
+     ```
+     ansible-playbook -i inventory deploy_app.yml
+     ```
