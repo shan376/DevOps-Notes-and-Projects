@@ -1,0 +1,304 @@
+
+# 📘 Jenkins – Part 1: Introduction, Installation, and First Job
+
+## 1. What is Jenkins? (Introduction)
+
+Jenkins is an open-source automation server used to automate the process of building, testing, and deploying software. It is a core tool in the CI/CD (Continuous Integration/Continuous Deployment) pipeline in DevOps.
+
+### 🔹 Key Features:
+
+* Automates repetitive DevOps tasks.
+* Supports hundreds of plugins (Git, Docker, Kubernetes, etc.).
+* Web-based GUI.
+* Easy integration with source control (e.g., GitHub).
+* Build triggers (via webhooks, schedule, or manually).
+
+### 📌 Jenkins in DevOps:
+
+* **CI (Continuous Integration):** Developers push code frequently to a shared repo. Jenkins automatically builds and tests the code.
+* **CD (Continuous Deployment):** After testing, Jenkins can deploy the code to staging/production automatically.
+
+---
+
+## 2. Jenkins Architecture
+
+Jenkins follows a **Master-Agent (or Controller-Agent)** architecture.
+
+### 🔧 Components:
+
+* **Master/Controller:** Main server that handles:
+
+  * Scheduling builds
+  * Monitoring agents
+  * Reporting results
+* **Agent/Node:** Executes build jobs sent by the master. Can be:
+
+  * On the same machine (built-in)
+  * On another machine (remote agents)
+
+---
+
+## 3. Installing Jenkins (Ubuntu/Linux)
+
+You can install Jenkins on a Linux system (Ubuntu preferred) using the following steps:
+
+### ✅ Step-by-Step Jenkins Installation on Ubuntu:
+
+**Step 1:** Update your system
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+**Step 2:** Install Java (required for Jenkins)
+
+```bash
+sudo apt install openjdk-11-jdk -y
+java -version
+```
+
+**Step 3:** Add Jenkins repository
+
+```bash
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+```
+
+**Step 4:** Install Jenkins
+
+```bash
+sudo apt update
+sudo apt install jenkins -y
+```
+
+**Step 5:** Start and enable Jenkins service
+
+```bash
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+```
+
+**Step 6:** Allow Jenkins on firewall (if enabled)
+
+```bash
+sudo ufw allow 8080
+```
+
+**Step 7:** Access Jenkins Web Interface
+Open browser → `http://your-server-ip:8080`
+
+---
+
+## 4. Unlocking Jenkins (First-Time Setup)
+
+Get the initial admin password:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+Copy the password and paste it into the Jenkins web interface.
+
+---
+
+## 5. Install Suggested Plugins
+
+After unlocking:
+
+* Choose “Install suggested plugins” (recommended).
+* Wait for plugin installation to complete.
+
+---
+
+## 6. Create Admin User
+
+After plugins install:
+
+* Set up the first admin user (username, password, email).
+* Or continue as admin (not recommended for production).
+
+---
+
+## 7. Explore Jenkins Dashboard
+
+Once setup is complete, you’ll land on the Jenkins Dashboard.
+
+**Key Sections:**
+
+* **New Item:** Create new job (freestyle or pipeline).
+* **Manage Jenkins:** Configuration, plugins, users.
+* **Build History:** Shows past builds.
+* **People:** Jenkins users.
+
+---
+
+## 8. Create Your First Jenkins Job (Freestyle Project)
+
+### ✅ Steps:
+
+1. Click “New Item”.
+2. Enter job name → Select “Freestyle project” → Click OK.
+3. Configure job:
+
+   * Add description (optional).
+   * Under Build → “Execute shell” → Command:
+
+     ```bash
+     echo "Hello from Jenkins Job"
+     ```
+4. Click Save.
+5. On the job page, click “Build Now”.
+6. View Build History → Click build number → Console Output.
+
+✅ Congratulations! You’ve:
+
+* Installed Jenkins
+* Explored the dashboard
+* Created your first Jenkins job
+
+---
+
+# 📘 Jenkins – Part 2: Advanced Topics (GitHub Integration, Triggers, and Scheduling)
+
+## 1. Integrating Jenkins with GitHub
+
+Jenkins can automatically fetch code from a GitHub repository and build/test/deploy it.
+
+### ✅ Steps to Integrate Jenkins with GitHub:
+
+**Step 1:** Install Git Plugin
+
+* Go to: *Manage Jenkins → Manage Plugins*
+* Search and install “Git plugin” (restart if needed).
+
+**Step 2:** Create Personal Access Token (PAT) on GitHub
+
+* Go to: [https://github.com/settings/tokens](https://github.com/settings/tokens)
+* Click: *Generate new token*
+* Select scopes:
+
+  * `repo`
+  * `admin:repo_hook`
+* Copy and save the token.
+
+**Step 3:** Add GitHub Credentials to Jenkins
+
+* Manage Jenkins → Credentials → Global → Add Credentials
+* Kind: Username and Password
+* Username: your GitHub username
+* Password: GitHub personal access token
+* Save it (e.g., ID = github-token).
+
+---
+
+## 2. Create a Jenkins Job Linked to GitHub
+
+### ✅ Steps:
+
+1. Click *New Item* → Freestyle project → OK
+2. Source Code Management → Git
+
+   * Repository URL: `https://github.com/username/repo-name.git`
+   * Credentials: Select GitHub token
+3. Build Triggers → Select “Poll SCM” or “GitHub hook trigger for GITScm polling”
+4. Build Section → “Execute shell”
+
+   ```bash
+   echo "Pulling from GitHub..."
+   git --version
+   ls -la
+   ```
+5. Save and click *Build Now*.
+
+---
+
+## 3. Trigger Jenkins Jobs Automatically
+
+There are 3 types of triggers:
+
+🔹 **1. Manual Trigger:** Click *Build Now* in Jenkins.
+🔹 **2. Poll SCM (Git polling):** Jenkins checks GitHub on a schedule.
+
+```bash
+H/5 * * * *   # Every 5 minutes
+```
+
+🔹 **3. Webhook Trigger (Recommended):** Automatic builds on every push.
+
+### ✅ Setup GitHub Webhook:
+
+1. Go to GitHub repo → *Settings → Webhooks*
+2. Click *Add webhook*
+3. Set:
+
+   * Payload URL: `http://<jenkins-server-ip>:8080/github-webhook/`
+   * Content type: `application/json`
+   * Events: *Push event only*
+4. Save webhook
+
+Now Jenkins triggers automatically on code push.
+
+---
+
+## 4. Job Scheduling (Using Cron Syntax)
+
+Automate builds at fixed times using cron syntax:
+
+| Schedule      | Cron Syntax    |
+| ------------- | -------------- |
+| Every 15 mins | `H/15 * * * *` |
+| Daily at 2am  | `0 2 * * *`    |
+| Every Monday  | `0 9 * * 1`    |
+
+Go to: Job Config → *Build Triggers → Poll SCM* and enter cron syntax.
+
+---
+
+## 5. Assignment Task: Create Auto-Trigger Job from GitHub
+
+### 🎯 Objective:
+
+* Link Jenkins to your GitHub repo.
+* Setup webhook.
+* On every push, Jenkins auto-builds.
+
+### ✅ Steps Summary:
+
+1. Install Git plugin
+2. Add GitHub PAT credentials
+3. Create freestyle job → Add Git repo
+4. Enable GitHub webhook trigger
+5. Setup webhook in GitHub
+6. Push new code → Jenkins builds automatically
+
+✅ Done! You’ve now covered **Git integration, triggers, and job scheduling.**
+
+---
+
+✅ Jenkins Intro
+
+* Jenkins کی core concepts (CI/CD understanding)
+* Installation on Ubuntu/Linux
+* Jenkins dashboard exploration
+* Freestyle job creation and execution
+
+✅ Jenkins Advanced
+
+* GitHub integration with Jenkins
+* Build triggers (manual, webhook, poll SCM)
+* Scheduling jobs using cron
+* Creating automated CI pipelines with GitHub hooks
+
+---
+
+## ✅ Quick Jenkins Summary (with Understanding in Mind)
+
+1. Jenkins automates build, test, and deployment in CI/CD.
+2. Jobs define tasks Jenkins executes step-by-step.
+3. GitHub integration enables Jenkins to fetch and build automatically.
+4. Build triggers define when Jenkins runs.
+5. Cron syntax automates regular builds.
+6. Dashboard is used for managing jobs, plugins, and build history.
+
+
