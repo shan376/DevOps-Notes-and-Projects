@@ -1,0 +1,146 @@
+### 🧩 AWS CLI Practical Work
+
+#### **1. Install AWS CLI (Manual Method – Ubuntu)**
+
+```bash
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo apt install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+#### **2. Check AWS CLI Version**
+
+```bash
+aws --version
+```
+
+---
+
+#### **3. Create IAM User and Policy (in AWS Console)**
+
+**Steps:**
+
+1. Go to **IAM → Users → Add user**
+2. Enter user name → e.g., `cli-user`
+3. Select ✅ **Programmatic access**
+4. Click **Next** till “Permissions”
+
+**Create Custom Policy (IAM → Policies → Create Policy → JSON tab):**
+
+```json
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": [
+"ec2:StartInstances",
+"ec2:StopInstances",
+"s3:*"
+],
+"Resource": "*"
+}
+]
+}
+```
+
+**Policy Name:** `DevOpsCLIPolicy`
+
+**Attach Policy:**
+
+1. Go to **IAM → Users → cli-user**
+2. Click **Permissions → Add permissions**
+3. Choose **Attach policies directly**
+4. Select **DevOpsCLIPolicy**
+5. Click **Add permissions**
+
+---
+
+#### **4. Configure AWS CLI**
+
+```bash
+aws configure
+```
+
+Enter following details:
+
+* **AWS Access Key ID:** (from IAM user)
+* **AWS Secret Access Key:** (from IAM user)
+* **Default region name:** e.g., `ap-south-1`
+* **Default output format:** `json`
+
+**Config files created:**
+
+```
+~/.aws/credentials
+~/.aws/config
+```
+
+---
+
+#### **5. Generate New Access Key (if needed)**
+
+AWS Console → IAM → Users → your user → Security credentials → Access keys → **Create access key**
+
+---
+
+#### **6. CLI Lab Practice – EC2 & S3**
+
+✅ **(A) List EC2 Instances**
+
+```bash
+aws ec2 describe-instances
+```
+
+✅ **(B) List All S3 Buckets**
+
+```bash
+aws s3 ls
+```
+
+✅ **(C) Create New S3 Bucket**
+
+```bash
+aws s3 mb s3://my-devops-bucket-172
+```
+
+✅ **(D) Create a File**
+
+```bash
+cat > myfile.txt
+```
+
+✅ **(E) Upload File to S3 Bucket**
+
+```bash
+aws s3 cp myfile.txt s3://my-devops-bucket-172/
+```
+
+✅ **(F) Verify File Upload**
+
+```bash
+aws s3 ls s3://my-devops-bucket-172/
+```
+
+---
+
+#### **7. Uninstall & Reinstall AWS CLI (Optional)**
+
+**Uninstall AWS CLI v2**
+
+```bash
+sudo rm -rf /usr/local/aws-cli
+sudo rm /usr/local/bin/aws
+which aws
+aws --version
+```
+
+**Reinstall AWS CLI**
+
+```bash
+sudo ./aws/install
+```
+
+---
+
