@@ -1,0 +1,362 @@
+Perfect 👌 — below is your **`details.txt`** file for:
+📘 **Topic 07 – Ansible in DevOps**
+This follows your established DevOps-style format (conceptual + practical + assignment + examples).
+
+---
+
+## 🧾 **details.txt — Topic 07: Ansible in DevOps**
+
+---
+
+### 📘 **1. Introduction**
+
+**Ansible** is an open-source **automation tool** used for **configuration management, application deployment, and task automation**.
+It helps DevOps teams automate repetitive operations like software installation, updates, and cloud provisioning — ensuring **speed, consistency, and reliability**.
+
+**Key Features:**
+
+* Agentless (no need to install client software)
+* Uses **SSH** to connect with managed nodes
+* Tasks written in **YAML playbooks** (easy to read and write)
+* Integrates smoothly into **DevOps CI/CD pipelines**
+
+**Common Use Cases:**
+
+* Deploying applications
+* Configuring servers
+* Automating patches/updates
+* Managing cloud infrastructure
+
+---
+
+## ⚙️ **Part 1 — Ansible Basics**
+
+---
+
+### 🧠 **1. What is Configuration Management?**
+
+**Concept:**
+Configuration Management is the process of maintaining software and system settings across multiple servers in a **consistent and automated way**.
+
+**Importance in DevOps:**
+
+* Ensures consistency across environments (Dev → Test → Prod)
+* Reduces human errors
+* Speeds up environment setup and patching
+
+**Example:**
+Using Ansible to automatically install software (like Nginx) on multiple servers at once.
+
+---
+
+### 📄 **2. What is an Inventory File?**
+
+**Concept:**
+The **inventory file** lists all managed servers (called **nodes**) where Ansible will apply tasks.
+
+**Format Example (INI):**
+
+```ini
+[webservers]
+192.168.1.10
+192.168.1.11
+
+[dbservers]
+192.168.1.12
+```
+
+**Purpose:**
+
+* Helps Ansible know *which servers* to connect to
+* Groups servers logically (e.g., `[webservers]`, `[dbservers]`)
+
+---
+
+### 🧰 **3. Installing Ansible and Writing a Playbook**
+
+#### ✅ **Step 1 — Install Ansible**
+
+**For Ubuntu:**
+
+```bash
+sudo apt update
+sudo apt install ansible
+```
+
+**For CentOS:**
+
+```bash
+sudo yum install ansible
+```
+
+Check installation:
+
+```bash
+ansible --version
+```
+
+---
+
+#### ✅ **Step 2 — Create an Inventory File**
+
+Example:
+
+```ini
+[webservers]
+192.168.1.10
+192.168.1.11
+```
+
+Save this as `inventory.ini`.
+
+---
+
+#### ✅ **Step 3 — Write a Simple Playbook**
+
+Playbooks define **tasks** that Ansible executes on target machines.
+
+**Example (`install_nginx.yml`):**
+
+```yaml
+---
+- hosts: webservers
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+```
+
+---
+
+#### ✅ **Step 4 — Run the Playbook**
+
+```bash
+ansible-playbook install_nginx.yml -i inventory.ini
+```
+
+This command will:
+
+* Connect to all `webservers`
+* Execute the tasks defined in the playbook
+* Install Nginx automatically on each target server
+
+---
+
+### 🧩 **4. Assignment — Automate Nginx Setup**
+
+**Objective:**
+Automate the installation of Nginx on multiple servers using a single playbook.
+
+**Steps:**
+
+1. Create an inventory file `inventory.ini`
+2. Write playbook `install_nginx.yml`
+3. Run:
+
+   ```bash
+   ansible-playbook install_nginx.yml -i inventory.ini
+   ```
+4. Verify Nginx is installed and running on all servers.
+
+**Outcome:**
+You’ve successfully used Ansible to automate server setup using **configuration management**.
+
+---
+
+## 🚀 **Part 2 — Ansible Advanced**
+
+---
+
+### 🧱 **1. Roles in Ansible**
+
+**Concept:**
+Roles are a modular way to organize playbooks into reusable components.
+Each role contains specific files for tasks, variables, and templates.
+
+**Standard Role Structure:**
+
+```
+my_role/
+├── tasks/
+├── vars/
+├── templates/
+├── files/
+├── defaults/
+└── meta/
+```
+
+**Why Use Roles:**
+
+* Increases reusability
+* Keeps large playbooks organized
+* Allows collaboration on modular components
+
+---
+
+### ⚙️ **2. Variables in Ansible**
+
+**Concept:**
+Variables make playbooks **dynamic** by replacing hardcoded values.
+
+**Defining Variables:**
+In playbook:
+
+```yaml
+vars:
+  package_name: "nginx"
+```
+
+In separate file (`vars/main.yml`):
+
+```yaml
+nginx_version: "1.18"
+```
+
+**Purpose:**
+
+* Avoids repetition
+* Makes configurations easily adjustable
+
+---
+
+### 🧩 **3. Templates in Ansible**
+
+**Concept:**
+Templates use **Jinja2 syntax** to create configuration files dynamically.
+Variables inside templates are replaced at runtime.
+
+**Example (`nginx.conf.j2`):**
+
+```jinja2
+server {
+  listen 80;
+  server_name {{ server_name }};
+  root {{ root_directory }};
+}
+```
+
+**Why Important:**
+Templates make configurations flexible and environment-aware.
+
+---
+
+### 🧪 **4. Practical — Create a Role-Based Project**
+
+#### Step 1 — Create Role Structure
+
+```bash
+ansible-galaxy init my_role
+```
+
+This creates:
+
+```
+my_role/
+├── tasks/
+├── vars/
+├── templates/
+└── handlers/
+```
+
+#### Step 2 — Define Tasks (`tasks/main.yml`)
+
+```yaml
+---
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+```
+
+#### Step 3 — Define Variables (`vars/main.yml`)
+
+```yaml
+nginx_version: "1.18"
+```
+
+#### Step 4 — Create Template (`templates/nginx.conf.j2`)
+
+```jinja2
+server {
+  listen 80;
+  server_name localhost;
+  root /var/www/html;
+}
+```
+
+#### Step 5 — Apply Role in Playbook (`site.yml`)
+
+```yaml
+---
+- hosts: webservers
+  roles:
+    - my_role
+```
+
+#### Step 6 — Run Playbook
+
+```bash
+ansible-playbook -i inventory site.yml
+```
+
+---
+
+### 💻 **5. Assignment — Deploy Web App using Ansible Role**
+
+**Objective:**
+Deploy a simple Nginx-based website using Ansible Role.
+
+#### Steps:
+
+1. Create role `web_app_role`
+2. Define tasks to install Nginx and copy HTML files
+3. Create template file (`templates/index.html.j2`):
+
+   ```html
+   <html>
+   <head><title>{{ app_name }}</title></head>
+   <body>{{ html_content }}</body>
+   </html>
+   ```
+4. Define variables (`vars/main.yml`):
+
+   ```yaml
+   app_name: "my_website"
+   html_content: "<h1>Welcome to {{ app_name }}!</h1>"
+   ```
+5. Run the deployment playbook:
+
+   ```bash
+   ansible-playbook -i inventory deploy_app.yml
+   ```
+
+**Outcome:**
+A fully automated web app deployment using Ansible Roles, Variables, and Templates.
+
+---
+
+## 📋 **Summary**
+
+| Concept                  | Description                        |
+| ------------------------ | ---------------------------------- |
+| Configuration Management | Ensures consistent system setup    |
+| Inventory File           | Lists target servers for Ansible   |
+| Playbooks                | Define automation tasks in YAML    |
+| Roles                    | Organize and reuse automation code |
+| Variables                | Make configurations dynamic        |
+| Templates                | Generate config files dynamically  |
+
+---
+
+### 🧭 **Result**
+
+You learned how to:
+
+* Install and configure Ansible
+* Create and execute playbooks
+* Use inventory files for target servers
+* Create Ansible roles, variables, and templates
+* Automate Nginx and web app deployment
+

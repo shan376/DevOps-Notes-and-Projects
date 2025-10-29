@@ -1,0 +1,131 @@
+Here’s only the **Practical Work** portion extracted exactly from your provided data — no extra additions or changes:
+
+---
+
+### **Practical Work: Install Ansible and Create Playbooks**
+
+**Step 1: Install Ansible**
+• For Ubuntu:
+
+```
+sudo apt update  
+sudo apt install ansible
+```
+
+• For CentOS:
+
+```
+sudo yum install ansible
+```
+
+---
+
+**Step 2: Create Inventory File**
+Ansible uses this file to list managed nodes.
+Example inventory file (`inventory.ini`):
+
+```
+[webservers]  
+192.168.1.10  
+192.168.1.11
+```
+
+---
+
+**Step 3: Write a Simple Playbook**
+A playbook is a YAML file that defines tasks to be executed on managed nodes.
+Example Playbook (`install_nginx.yml`):
+
+```
+---
+- hosts: webservers
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+```
+
+---
+
+**Step 4: Run the Playbook**
+Command to run the playbook:
+
+```
+ansible-playbook install_nginx.yml -i inventory.ini
+```
+
+This command runs the tasks defined in the playbook on the servers listed in the inventory file.
+
+---
+
+### **Practical Work: Create a Role-Based Project**
+
+**Step 1: Create Role Directory Structure**
+Navigate to your project directory and create a role:
+
+```
+ansible-galaxy init my_role
+```
+
+This will create a directory structure for the role:
+
+```
+my_role/
+defaults/
+files/
+handlers/
+meta/
+tasks/
+templates/
+vars/
+```
+
+---
+
+**Step 2: Define Tasks in the tasks/main.yml file**
+For example, creating a task to install Nginx:
+
+```
+---
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+```
+
+---
+
+**Step 3: Define Variables in vars/main.yml**
+Define the variables:
+
+```
+nginx_version: "1.18"
+```
+
+---
+
+**Step 4: Use Templates in the templates/ directory**
+You can create a template file for Nginx config (e.g., `nginx.conf.j2`) and use it in the playbook.
+
+---
+
+**Step 5: Apply the Role in Your Playbook**
+Create a playbook (`site.yml`):
+
+```
+---
+- hosts: webservers
+  roles:
+    - my_role
+```
+
+---
+
+**Step 6: Run the Playbook**
+Run the playbook to apply the role:
+
+```
+ansible-playbook -i inventory site.yml
+```
