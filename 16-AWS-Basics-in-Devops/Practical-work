@@ -1,0 +1,125 @@
+### **1️⃣ Create AWS Free Tier Account**
+
+**Steps:**
+
+1. Go to: [https://aws.amazon.com/free](https://aws.amazon.com/free)
+2. Click **“Create Free Account”**
+3. Fill in details:
+
+   * Email
+   * Password
+   * Account Name
+   * Billing Info (Debit/Credit Card Required)
+4. AWS will:
+
+   * Verify Phone (OTP)
+   * Verify Email
+   * Choose **Free Tier Plan**
+5. Login to **AWS Management Console**
+
+---
+
+### **2️⃣ Launch EC2 Instance (Ubuntu)**
+
+**Steps:**
+
+1. Go to **EC2 Dashboard** → Click **Launch Instance**
+2. Select AMI → **Ubuntu Server 22.04 LTS**
+3. Choose Instance Type → **t2.micro (Free Tier eligible)**
+4. Add Tag → **Name: MyFirstUbuntuServer**
+5. Storage → Keep **default 8 GB**
+6. Create New Key Pair →
+
+   * Name: **ubuntu-key**
+   * Format: **.pem**
+   * Download it
+7. Configure Security Group →
+
+   * Allow **SSH (22)** → Anywhere (0.0.0.0/0)
+   * Allow **HTTP (80)** → Anywhere
+8. Click **Launch Instance**
+
+---
+
+### **3️⃣ Connect to EC2 via PuTTY (Windows User)**
+
+**Step 1 – Convert .pem to .ppk:**
+
+1. Open **PuTTYgen**
+2. Click **Load** → Choose `.pem` file
+3. Click **Save Private Key** → Save as `.ppk`
+
+**Step 2 – Copy EC2 Public IP:**
+
+* Go to EC2 Console → Instances → Copy **Public IPv4**
+
+**Step 3 – Configure PuTTY:**
+
+1. Open **PuTTY**
+2. In “Host Name”, type:
+
+   ```
+   ubuntu@<your-public-ip>
+   ```
+
+   Example:
+
+   ```
+   ubuntu@13.234.55.78
+   ```
+3. In sidebar → Connection → SSH → Auth
+4. Click **Browse** → Select `.ppk` file
+5. Click **Open** → Accept Security Alert
+
+**Step 4 – Login:**
+
+* Username: `ubuntu`
+* Switch to root:
+
+  ```bash
+  sudo su
+  ```
+
+---
+
+### **4️⃣ Apache Web Server Setup (Inside EC2 Ubuntu)**
+
+**Commands:**
+
+```bash
+sudo apt update -y
+echo "Hello from EC2 Ubuntu" > index.html
+sudo apt install apache2 -y
+sudo mv index.html /var/www/html/
+sudo systemctl start apache2
+```
+
+**Then open in browser:**
+
+```
+http://<your-public-ip>
+```
+
+Example:
+
+```
+http://13.234.55.78
+```
+
+---
+
+### **✅ Final Output:**
+
+When you open the IP in your browser, it should show:
+**“Hello from EC2 Ubuntu”**
+
+---
+
+### **💡 Summary of Work Done**
+
+* Created AWS Free Tier Account
+* Launched EC2 Ubuntu Instance
+* Connected to EC2 using PuTTY
+* Installed & Configured Apache Web Server
+* Hosted Simple HTML Page on EC2
+
