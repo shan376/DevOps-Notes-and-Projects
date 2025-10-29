@@ -1,0 +1,244 @@
+## **🧠 Conceptual Understanding – Lecture 10**
+
+### 📌 Topic 1: What is Source Code Management (SCM)?
+
+**Definition:**
+Source Code Management (SCM) is the process of tracking, managing, and controlling changes to source code over time.
+
+**Why SCM is Important in DevOps:**
+
+* Keeps a history of code changes
+* Helps teams collaborate on the same codebase
+* Allows rolling back to previous versions
+* Supports automation in CI/CD pipelines
+
+**Real-world Scenario:**
+In a team, SCM ensures developers' work is synchronized, traceable, and conflict-free.
+
+---
+
+### 📌 Topic 2: CVCS vs. DVCS
+
+| Feature             | CVCS (Centralized)    | DVCS (Distributed)            |
+| ------------------- | --------------------- | ----------------------------- |
+| Server              | Single central server | Every developer has full copy |
+| Example Tools       | SVN, Perforce         | Git, Mercurial                |
+| Internet Required?  | Always                | Only when pushing/pulling     |
+| If Server Fails     | Risk of data loss     | No problem                    |
+| Collaboration Speed | Slower                | Faster                        |
+
+**💡 Summary:**
+
+* CVCS → One central place = risk if server fails.
+* DVCS → Each user has full copy = safe, fast, ideal for DevOps.
+
+---
+
+### 📌 Topic 3: What is Git?
+
+**Definition:**
+Git is a Distributed Version Control System (DVCS) used to manage source code.
+
+**Key Features:**
+
+* Tracks changes and history
+* Branching and merging
+* Collaboration without conflicts
+* Works offline and is fast
+
+**Used With:** GitHub, GitLab, Bitbucket
+
+**Example:**
+Each developer creates a branch, works independently, then merges into the main branch — Git tracks all changes.
+
+---
+
+## **🔹 Lecture 11 – Git: Three Stages, Core Commands, Setup & Key Terms**
+
+### 🧠 Concept 1: Three Stages of Git Workflow
+
+| Stage            | Description                              |
+| ---------------- | ---------------------------------------- |
+| Workspace        | Where you write or edit files            |
+| Staging Area     | Temporarily stores changes before commit |
+| Local Repository | Stores committed changes permanently     |
+
+---
+
+### 💻 Concept 2: Common Git Commands
+
+| Command      | Purpose                           |
+| ------------ | --------------------------------- |
+| `git add`    | Moves changes to staging area     |
+| `git commit` | Saves staged changes permanently  |
+| `git push`   | Sends commits to remote (GitHub)  |
+| `git pull`   | Fetches changes from remote repo  |
+| `git branch` | Create or switch between branches |
+
+---
+
+### ⚙️ Concept 3: Git Setup
+
+```bash
+git --version
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --list
+```
+
+---
+
+### 📘 Concept 4: Git Terms
+
+| Term       | Explanation                |
+| ---------- | -------------------------- |
+| Repository | Git project folder         |
+| Server     | Remote storage (GitHub)    |
+| Workspace  | Working directory          |
+| Commit     | Snapshot of staged changes |
+| Tag        | Mark specific version      |
+| Branch     | Separate development line  |
+
+---
+
+### 🚀 Concept 5: Advantages of Git
+
+* Tracks every file and change
+* Collaboration made easy
+* Offline support
+* Fast and reliable
+
+---
+
+### 🔧 Practical Example: Git Workflow
+
+```bash
+git init
+echo "Hello Git" > file.txt
+git add file.txt
+git commit -m "First commit"
+git remote add origin https://github.com/username/repo.git
+git push -u origin main
+```
+
+---
+
+## **🧪 Lecture 12: Installing Git on AWS Linux Machines + GitHub Setup**
+
+### 🧠 Concept
+
+Install Git on EC2 instances from two AWS regions and connect with GitHub.
+
+### 🛠️ Procedure
+
+```bash
+sudo yum update -y
+sudo yum install git -y
+git --version
+```
+
+Then create a **GitHub account** at [github.com](https://github.com).
+
+---
+
+## **📘 Lecture 13 – Git: Add, Commit, Push, Pull, .gitignore**
+
+### 🧠 Concepts
+
+1. Initialize and commit files
+2. Push to GitHub
+3. Pull from another system
+4. Use `.gitignore`
+5. View commit history
+
+---
+
+### 🧪 Commands Summary
+
+```bash
+git init
+git add file.txt
+git commit -m "message"
+git push -u origin master
+git pull origin master
+git log --oneline
+```
+
+**.gitignore Example:**
+
+```
+*.log
+temp.txt
+mysecrets/
+```
+
+---
+
+## **📘 Lecture 14 – Branch, Merge, Stash, Reset**
+
+### 🌿 Branch
+
+```bash
+git branch branch1
+git checkout branch1
+git checkout -b branch1
+git merge branch1
+```
+
+### ⚠️ Merge Conflicts
+
+Edit manually → `git add` → `git commit -m "resolved conflict"`
+
+### 📥 Stash
+
+```bash
+git stash
+git stash list
+git stash apply
+git stash clear
+```
+
+### 🧪 Reset
+
+```bash
+git reset --hard HEAD~2
+```
+
+---
+
+## **📘 Lecture 15 – Git Revert, Tags, Clone, GitLab**
+
+### 🔁 Revert
+
+```bash
+git revert <commit-id>
+```
+
+### 🗑️ Remove Untracked
+
+```bash
+git clean -n
+git clean -f
+```
+
+### 🔖 Tag
+
+```bash
+git tag v1.0 <commit-id>
+git tag -d v1.0
+```
+
+### 📥 Clone
+
+```bash
+git clone https://github.com/username/project.git
+```
+
+### 🧾 Revert vs Reset
+
+| Feature          | git revert         | git reset  |
+| ---------------- | ------------------ | ---------- |
+| Action           | Creates new commit | Moves HEAD |
+| Safe for sharing | ✅ Yes              | ❌ No       |
+| Keeps history    | ✅ Yes              | ❌ No       |
+
