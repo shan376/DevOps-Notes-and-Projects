@@ -1,0 +1,175 @@
+**Topic 16: AWS Basics – [Understanding + Ubuntu Lab Guide]**
+
+📘 **Conceptual Explanation (Simple Urdu + Real-life Example)**
+
+**What is AWS?**
+AWS (Amazon Web Services) ek cloud platform hai jo aapko online hi servers, storage, databases aur aur bhi kai IT services provide karta hai — bina apne ghar ya office mein physical server lagaye.
+
+**Roman Urdu:**
+AWS aik cloud company hai jisme aap server rent par le kar website, software ya application chala saktay hain.
+
+🔍 **Real-Life Example:**
+Sochiye aap ek online clothing store banate hain:
+• Website ke liye server (EC2) AWS se le liya
+• Product images & videos (S3) mein store kiye
+• Payment database AWS ke RDS service mein rakh liya
+👉 Aapka full business cloud par chal raha hai, bina koi server kharide.
+
+---
+
+🔧 **Practical Work: Create AWS Free Tier Account**
+
+1. Go to: [https://aws.amazon.com/free](https://aws.amazon.com/free)
+2. Click on Create Free Account
+3. Enter:
+   o Email, password, account name
+   o Billing info (debit/credit card required)
+4. AWS will:
+   o Verify phone (OTP)
+   o Verify email
+   o Choose Free Tier plan
+   o Login to AWS Console
+
+---
+
+📑 **Assignment: Launch EC2 Instance (Ubuntu Commands)**
+
+🖥 **Goal:**
+Launch EC2 Instance and connect via SSH from your Ubuntu system (or PuTTY for Windows).
+
+📌 **Step-by-step Procedure:**
+✅ 1. Go to EC2 Dashboard:
+• AWS Console → EC2 → "Launch Instance"
+
+✅ 2. Select AMI:
+• Choose: Amazon Linux 2 or Ubuntu Server 22.04 LTS
+
+✅ 3. Choose Instance Type:
+• Select: t2.micro (Free Tier eligible)
+
+✅ 4. Configure Instance:
+• Add a name (tag): MyFirstUbuntuServer
+• Keep default storage: 8 GB
+
+✅ 5. Create a new key pair:
+• Name: ubuntu-key
+• Format: .pem
+• Download this file (very important!)
+
+✅ 6. Set Security Group (Firewall):
+• Allow:
+o SSH (port 22) → Anywhere (0.0.0.0/0)
+o HTTP (port 80) → Anywhere
+• Click Launch Instance
+
+---
+
+✅ **Step-by-Step: SSH to EC2 Using PuTTY (on Windows)**
+
+🔹 **Step 1: Convert .pem file to .ppk using PuTTYgen**
+
+1. Open PuTTYgen (installed with PuTTY).
+2. Click on "Load" → Select "All Files (*.*)" → Choose your .pem file (e.g., ubuntu-key.pem)
+3. Click "Save private key" → It will save as .ppk file (e.g., ubuntu-key.ppk) ⚠️
+   It may ask if you want to save without a passphrase — click Yes
+
+🔹 **Step 2: Get your EC2 instance Public IP**
+• Go to AWS EC2 Console → Instances → Copy the Public IPv4 address
+
+🔹 **Step 3: Open PuTTY and configure connection**
+
+1. Open PuTTY
+2. In "Host Name (or IP address)", write:
+   ubuntu@<your-public-ip>
+   🔸 Example:
+   ubuntu@13.234.55.78
+3. In the left sidebar:
+   Connection → SSH → Auth
+4. Click Browse → Select your .ppk file (e.g., ubuntu-key.ppk)
+
+🔹 **Step 4: Connect**
+• Click Open
+• A terminal window will open → It may ask about security → Click Yes
+• ✅ You're now logged into your EC2 Ubuntu instance 🎉
+
+---
+
+🧑‍💻 **Final Step in PuTTY Terminal**
+Once connected, login as:
+ubuntu
+Then run:
+
+```
+sudo su
+```
+
+✅ Ab aap superuser/root rights ke saath server ke andar commands chala sakte hain.
+
+---
+
+🧪 **Lab Work – EC2 ke andar Apache Web Server Setup**
+Shan, is lab task mein EC2 Ubuntu instance ke andar hum basic web hosting ka kaam karwa rahe hain. Yeh real DevOps work ka shuruaati (beginner) practical hai — jisme aap server setup aur Apache web server run karna seekh rahe ho.
+
+🔍 **Yahan hum kya kaam kar rahe hain (Simple Explanation in Urdu):**
+
+🔹 **Step-by-step Summary:**
+
+1. EC2 ke andar update command chala rahe hain:
+
+```
+sudo apt update -y
+```
+
+📌 System ke saare packages update kar raha hai — taake latest versions install ho sakein.
+
+2. Ek simple HTML file bana rahe hain:
+
+```
+echo "Hello from EC2 Ubuntu" > index.html
+```
+
+📌 Yeh command ek text file bana rahi hai jo browser mein show hogi.
+
+3. Apache2 web server install kar rahe hain:
+
+```
+sudo apt install apache2 -y
+```
+
+📌 Apache ek lightweight web server hai jo website serve karta hai browser par.
+
+4. Apni HTML file ko Apache ke default folder mein move kar rahe hain:
+
+```
+sudo mv index.html /var/www/html/
+```
+
+📌 /var/www/html/ woh jagah hai jahan Apache website content dhoondta hai.
+
+5. Apache server ko start kar rahe hain:
+
+```
+sudo systemctl start apache2
+```
+
+6. Browser mein EC2 ka public IP open kar rahe hain:
+
+```
+http://<your-public-ip>
+```
+
+🔸 Example:
+[http://13.234.55.78](http://13.234.55.78)
+
+📌 Jab aap browser mein EC2 ka IP dalte ho, toh "Hello from EC2 Ubuntu" text show hota hai — jo aapne HTML file mein likha tha.
+
+---
+
+✅ **Conclusion:**
+Is lab mein aap ne sikha:
+• EC2 instance mein login kaise karte hain
+• Linux commands se server update kaise karte hain
+• Apache web server install aur run kaise karte hain
+• Apni website ka content serve kaise karte hain via EC2 Public IP
+
+Yeh DevOps ka basic server configuration + deployment practice hai.
