@@ -1,39 +1,31 @@
-Perfect 👌
-Here’s your **`README.md`** file for **Topic-07 — Ansible in DevOps**, written in a **short, professional, and recruiter-friendly GitHub format** — fully based on your provided data.
+# **Ansible in DevOps**
+
+Ansible is an open-source automation tool used for **configuration management**, **application deployment**, and **task automation**.
+It helps IT teams automate repetitive tasks like software installation, system updates, and cloud resource management.
+
+Ansible is **agentless**, meaning no software is required on managed machines.
+It uses **YAML-based Playbooks** to define automation tasks in a simple, human-readable format.
 
 ---
 
-## 🧾 **Topic 07 — Ansible in DevOps**
+## **🔹 Key Uses in DevOps**
 
-### ⚙️ **Overview**
-
-Ansible is an **open-source automation tool** used for configuration management, application deployment, and IT orchestration.
-It helps DevOps engineers **automate repetitive tasks**, maintain **server consistency**, and **reduce manual errors** — all using simple **YAML-based Playbooks**.
-
----
-
-### 🚀 **Key Features**
-
-* Agentless (no installation needed on managed nodes)
-* Uses **SSH** for communication
-* **YAML Playbooks** define automation tasks
-* Ideal for **server provisioning, deployment, and updates**
-* Integrates smoothly with **CI/CD pipelines**
+* Deploying applications
+* Configuring servers
+* Automating updates and patches
+* Managing cloud environments
 
 ---
 
-### 🧩 **Ansible Basics (Part 1)**
+## **🧩 Ansible Basics (Part 1)**
 
-**Core Concepts:**
+* **Configuration Management:** Automates consistent configuration across servers.
+* **Inventory File:** Lists managed nodes using INI or YAML format.
+* **Playbooks:** YAML files defining tasks to be executed on target servers.
 
-* **Configuration Management:** Maintain system consistency across environments
-* **Inventory File:** Defines target servers (e.g., `inventory.ini`)
-* **Playbooks:** YAML files that describe automation tasks
-
-**Example:**
+**Example Playbook:**
 
 ```yaml
-# install_nginx.yml
 ---
 - hosts: webservers
   become: yes
@@ -44,85 +36,30 @@ It helps DevOps engineers **automate repetitive tasks**, maintain **server consi
         state: present
 ```
 
-**Run Command:**
+---
 
-```bash
-ansible-playbook install_nginx.yml -i inventory.ini
+## **⚙️ Ansible Advanced (Part 2)**
+
+* **Roles:** Modular way to organize tasks, variables, and templates.
+* **Variables:** Make playbooks reusable and dynamic.
+* **Templates (Jinja2):** Generate configuration files dynamically using variables.
+
+**Example Role Structure:**
+
+```
+my_role/
+├── tasks/
+├── vars/
+├── templates/
+├── defaults/
+└── meta/
 ```
 
 ---
 
-### 🧠 **Ansible Advanced (Part 2)**
+## **🚀 Summary**
 
-**1. Roles**
+* Ansible simplifies DevOps automation through agentless configuration.
+* Basic tasks include creating inventory files and playbooks.
+* Advanced features like **Roles**, **Variables**, and **Templates** make Ansible modular and reusable.
 
-* Modular, reusable structure for organizing playbooks
-* Typical directories: `tasks/`, `vars/`, `templates/`, `files/`, `meta/`
-
-**2. Variables**
-
-* Make playbooks **dynamic and reusable**
-* Example:
-
-  ```yaml
-  vars:
-    package_name: "nginx"
-  ```
-
-**3. Templates**
-
-* Create **dynamic configuration files** using **Jinja2** syntax
-
-  ```jinja2
-  server {
-    listen 80;
-    server_name {{ server_name }};
-    root {{ root_directory }};
-  }
-  ```
-
----
-
-### 🧪 **Practical Work**
-
-* Create a custom role using:
-
-  ```bash
-  ansible-galaxy init my_role
-  ```
-* Define tasks, variables, and templates
-* Apply role in a playbook:
-
-  ```yaml
-  - hosts: webservers
-    roles:
-      - my_role
-  ```
-* Run:
-
-  ```bash
-  ansible-playbook -i inventory site.yml
-  ```
-
----
-
-### 🎯 **Assignments**
-
-**1. Basic Playbook:** Automate Nginx installation on multiple servers
-**2. Role-Based Project:** Deploy a simple web app using Nginx and HTML templates
-
----
-
-### 🧾 **Summary**
-
-| Concept                  | Description                          |
-| ------------------------ | ------------------------------------ |
-| Configuration Management | Automate system setup & maintenance  |
-| Inventory File           | Defines managed servers              |
-| Playbooks                | YAML-based automation scripts        |
-| Roles                    | Modular organization for reusability |
-| Templates                | Generate dynamic config files        |
-
-📊 Diagram Reference
-
-Diagrams are available in the diagram/ folder.

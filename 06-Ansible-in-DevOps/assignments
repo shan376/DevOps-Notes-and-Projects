@@ -1,7 +1,3 @@
-Here’s **only the Assignment section** extracted exactly from your provided data — without any extra additions or edits:
-
----
-
 ### **Assignment 1: Setup Simple Playbook and Run**
 
 **Objective:**
@@ -73,3 +69,4 @@ Here’s **only the Assignment section** extracted exactly from your provided da
      ```
      ansible-playbook -i inventory deploy_app.yml
      ```
+
