@@ -1,7 +1,3 @@
-Here’s only the **Practical Work** portion extracted exactly from your provided data — no extra additions or changes:
-
----
-
 ### **Practical Work: Install Ansible and Create Playbooks**
 
 **Step 1: Install Ansible**
@@ -128,4 +124,3 @@ Run the playbook to apply the role:
 
 ```
 ansible-playbook -i inventory site.yml
-```
