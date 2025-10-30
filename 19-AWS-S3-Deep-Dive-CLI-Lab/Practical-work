@@ -1,0 +1,53 @@
+# AWS S3 Deep Dive (CLI Practical Work)
+
+# Step 1: Install AWS CLI (Ubuntu)
+sudo apt update
+sudo apt install awscli -y
+
+# Step 2: Configure AWS CLI
+aws configure
+# Provide:
+# Access Key, Secret Key, Region (e.g., ap-south-1), Output format (e.g., json)
+
+# Step 3: Create S3 Bucket
+aws s3 mb s3://my-cli-bucket-devops
+
+# Step 4: Disable Block Public Access
+aws s3api put-public-access-block \
+--bucket my-cli-bucket-devops \
+--public-access-block-configuration BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
+
+# Step 5: Add Public Read Bucket Policy
+aws s3api put-bucket-policy \
+--bucket my-cli-bucket-devops \
+--policy '{
+"Version":"2012-10-17",
+"Statement":[{
+"Sid":"PublicReadGetObject",
+"Effect":"Allow",
+"Principal":"*",
+"Action":["s3:GetObject"],
+"Resource":["arn:aws:s3:::my-cli-bucket-devops/*"]
+}]
+}'
+
+# Step 6: Create and Upload File to S3
+echo "My DevOps File" > file.txt
+aws s3 cp file.txt s3://my-cli-bucket-devops/
+
+# Step 7: Verify URL Access
+# URL format:
+# https://my-cli-bucket-devops.s3.amazonaws.com/file.txt
+
+# Step 8: Upload Another Test File
+echo "Test File Upload" > test.txt
+aws s3 cp test.txt s3://my-cli-bucket-devops/
+
+# Step 9: List Bucket Contents
+aws s3 ls s3://my-cli-bucket-devops/
+
+# Step 10: Download File Back to EC2
+aws s3 cp s3://my-cli-bucket-devops/file.txt .
+
+# Step 11: View File Content
+cat file.txt
