@@ -1,0 +1,199 @@
+📘 Practical Work – IAM Management (Console + CLI)
+
+🧪 Practical Work – IAM Lab (CLI Based)
+
+✅ LAB: Create IAM User, Group, and Generate Access Key (CLI Based)
+
+🧪 Pre-requisite:
+AWS CLI must be configured (using aws configure with root credentials)
+
+🔹 Step 1: Create IAM Group
+aws iam create-group --group-name cli-group
+
+🔹 Step 2: Attach Policy to Group
+aws iam attach-group-policy \
+--group-name cli-group \
+--policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+🔹 Step 3: Create IAM User
+aws iam create-user --user-name cli-user
+
+🔹 Step 4: Add User to Group
+aws iam add-user-to-group \
+--user-name cli-user \
+--group-name cli-group
+
+🔹 Step 5: Create Access Key (Programmatic Access)
+aws iam create-access-key --user-name cli-user
+
+✅ Output Example:
+{
+"AccessKey": {
+"UserName": "cli-user",
+"AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+"Status": "Active",
+"SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+"CreateDate": "2025-05-24T12:00:00Z"
+}
+}
+
+📝 Save this AccessKeyId and SecretAccessKey safely – they will be used later in aws configure.
+
+📦 Lab Summary (Cheat Sheet)
+Task                            CLI Command
+Create IAM Group                aws iam create-group --group-name cli-group
+Attach Policy                   aws iam attach-group-policy --group-name cli-group --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+Create IAM User                 aws iam create-user --user-name cli-user
+Add User to Group               aws iam add-user-to-group --user-name cli-user --group-name cli-group
+Create Access Key               aws iam create-access-key --user-name cli-user
+
+
+🔐 AWS IAM Least Privilege Lab – Custom Policy Practice
+
+IAM User: myiamuser  
+Policy Name: mypolicy  
+Policy File: mypolicy.json  
+
+Step 1: Create IAM User
+aws iam create-user --user-name myiamuser
+
+Step 2: Create Policy JSON using nano
+nano mypolicy.json
+
+Paste the following:
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": [
+"ec2:StartInstances",
+"ec2:StopInstances"
+],
+"Resource": "*"
+}
+]
+}
+
+Save the file:
+Ctrl + O, Enter, Ctrl + X
+
+Step 3: Create the Policy in AWS
+aws iam create-policy --policy-name mypolicy --policy-document file://mypolicy.json
+
+📝 Note the output ARN, e.g.:
+arn:aws:iam::123456789012:policy/mypolicy
+
+Step 4: Attach Policy to User
+aws iam attach-user-policy --user-name myiamuser --policy-arn arn:aws:iam::123456789012:policy/mypolicy
+👉 Replace ARN with your actual output.
+
+Step 5: Generate Access Key
+aws iam create-access-key --user-name myiamuser
+📝 Save the keys securely for CLI use.
+
+Step 6: Configure AWS CLI with Profile
+aws configure --profile myiamuser
+
+Fill in:
+• AWS Access Key ID
+• AWS Secret Access Key
+• Default region (e.g., us-east-1)
+• Output format (json)
+
+Step 7: Test Permissions
+❌ Denied: Describe Instances
+aws ec2 describe-instances --profile myiamuser
+
+✅ Allowed: Start Instance
+aws ec2 start-instances --instance-ids <INSTANCE_ID> --profile myiamuser
+
+✅ Allowed: Stop Instance
+aws ec2 stop-instances --instance-ids <INSTANCE_ID> --profile myiamuser
+
+❌ Denied: Terminate Instance
+aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --profile myiamuser
+
+
+✅ IAM Management via AWS Console
+
+🎯 Goal: Securely manage access to AWS using IAM via Console
+
+🔹 Step 1: Create IAM Group (Console)
+1. AWS Console → Search “IAM”
+2. Go to User groups → Create group
+3. Group Name: cli-group
+4. Click Create group
+
+🔹 Step 2: Attach Policy to Group (Console)
+1. Open cli-group → Permissions tab → Add permissions
+2. Choose Attach policies directly
+3. Search: AmazonS3ReadOnlyAccess
+4. Select and Add permissions
+
+🔹 Step 3: Create IAM User (Console)
+1. IAM → Users → Add user
+2. Name: cli-user
+3. Access type: Programmatic access
+4. Click Next and Create user
+
+🔹 Step 4: Add User to Group (Console)
+1. IAM → Users → cli-user → Groups tab
+2. Add user to cli-group
+
+🔹 Step 5: Create Access Key (Console)
+1. IAM → Users → cli-user → Security credentials
+2. Create access key → Purpose: CLI use
+3. Copy Access key ID & Secret access key
+
+
+✅ IAM Custom Policy (Least Privilege) via Console
+
+🎯 Goal: Allow only EC2 Start/Stop permissions
+
+🔹 Step 1: Create IAM User
+1. IAM → Users → Add user
+2. Name: myiamuser
+3. Access type: Programmatic access → Create User
+
+🔹 Step 2: Create Custom Policy
+1. IAM → Policies → Create policy → JSON tab
+2. Paste below policy:
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": [
+"ec2:StartInstances",
+"ec2:StopInstances"
+],
+"Resource": "*"
+}
+]
+}
+3. Name policy: mypolicy → Create policy
+
+🔹 Step 3: Attach Policy to User
+1. IAM → Users → myiamuser → Permissions → Add permissions
+2. Select Attach policies directly → Choose mypolicy → Add permissions
+
+🔹 Step 4: Create Access Key for myiamuser
+1. IAM → Users → myiamuser → Security credentials
+2. Create access key → Purpose: CLI use
+3. Save AccessKeyId and SecretAccessKey
+
+🔹 Step 5: Configure AWS CLI with These Keys
+aws configure --profile myiamuser
+
+Inputs:
+• Access Key ID
+• Secret Access Key
+• Region (e.g., us-west-1)
+• Output: json
+
+🔹 Step 6: Test Permissions
+aws ec2 describe-instances --profile myiamuser  # ❌ Denied
+aws ec2 start-instances --instance-ids i-xyz --profile myiamuser  # ✅ Allowed
+aws ec2 stop-instances --instance-ids i-xyz --profile myiamuser   # ✅ Allowed
+aws ec2 terminate-instances --instance-ids i-xyz --profile myiamuser  # ❌ Denied
