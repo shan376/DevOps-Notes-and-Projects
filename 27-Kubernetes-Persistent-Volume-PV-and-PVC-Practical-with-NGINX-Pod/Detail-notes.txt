@@ -1,0 +1,317 @@
+# 📘 **Kubernetes Persistent Volume (PV) + PVC + NGINX**
+
+
+### 🧠 **Conceptual Explanation**
+
+**Persistent Volume (PV):**
+Kubernetes mein PV ek physical ya virtual storage hota hai (jaise EBS, NFS, ya local disk). Ye admin ke zariye cluster ke andar create hota hai, aur multiple pods use kar sakte hain — lekin directly nahi.
+
+**Persistent Volume Claim (PVC):**
+PVC ek request hoti hai jo developer karta hai storage ke liye. Ismein wo define karta hai ke usay kitni storage chahiye (e.g., 1Gi) aur kis access mode ke sath (e.g., ReadWriteOnce).
+PVC automatically us PV se bind ho jata hai jo requirement fulfill kare.
+
+**Roman Urdu Example:**
+Socho PV ek almari (cupboard) hai aur PVC us almari ko use karne ki request — agar almari available hai to aapko ek shelf mil jati hai. Agar pod delete ho bhi jaye to data safe rehta hai, kyunke storage alag rehta hai.
+
+---
+
+### 🧩 **Real-Life Scenario: WordPress + MySQL Example**
+
+Agar aap WordPress aur MySQL app Kubernetes pe run kar rahe ho:
+
+* MySQL ko data store karna hota hai `/var/lib/mysql` pe.
+* Agar pod delete ho gaya to data loss ho sakta hai.
+
+**Solution:**
+
+1. PV create karo (e.g., 5Gi storage AWS EBS ya local disk se).
+2. PVC banao jisse MySQL pod storage request karega.
+3. Pod PVC ke through PV se bind hoga.
+4. Agar pod delete bhi ho gaya, data PV mein safe rahega.
+
+---
+
+### 🧾 **YAML Overview**
+
+```yaml
+# Persistent Volume (PV)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /mnt/data
+---
+# Persistent Volume Claim (PVC)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+**Pod mein use karne ke liye:**
+
+```yaml
+volumes:
+- name: my-storage
+  persistentVolumeClaim:
+    claimName: my-pvc
+```
+
+🧠 **1 Line Summary:**
+PV storage ka kamra hai, aur PVC us kamre ki chabi — pod ko andar jane ke liye.
+
+---
+
+### ⚙️ **Prerequisites Setup**
+
+**Step 1: Docker Installation**
+
+```bash
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable docker --now
+docker --version
+```
+
+🧾 Roman Urdu: Docker install aur enable karo taake system restart ke baad bhi chalta rahe.
+
+---
+
+**Step 2: Add Swap Memory**
+
+```bash
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+swapon --show
+free -h
+```
+
+🧾 Roman Urdu: Swap memory system ko thoda extra virtual RAM deti hai — helpful for Kubernetes installation.
+
+---
+
+**Step 3: Install K3s (Lightweight Kubernetes)**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo systemctl status k3s
+sudo k3s kubectl get nodes
+```
+
+🧾 Roman Urdu: K3s ek lightweight Kubernetes hai jo testing aur small clusters ke liye perfect hai.
+
+---
+
+### 🧪 **Practical Work**
+
+**1️⃣ Kubectl Alias Setup**
+
+```bash
+alias kubectl='sudo k3s kubectl'
+```
+
+---
+
+**2️⃣ Create Persistent Volume (PV)**
+
+```bash
+nano pv.yaml
+```
+
+Paste this:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data"
+```
+
+Apply:
+
+```bash
+kubectl apply -f pv.yaml
+```
+
+🧾 Roman Urdu: Ye PV host ke `/mnt/data` folder se bind hoga. Agar ye folder nahi hai to error ayega.
+
+---
+
+**3️⃣ Create Persistent Volume Claim (PVC)**
+
+```bash
+nano pvc.yaml
+```
+
+Paste this:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+Apply:
+
+```bash
+kubectl apply -f pvc.yaml
+```
+
+---
+
+**4️⃣ Create Pod with Mounted PVC**
+
+```bash
+nano nginx-pod.yaml
+```
+
+Paste this:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - mountPath: "/usr/share/nginx/html"
+      name: web-storage
+  volumes:
+  - name: web-storage
+    persistentVolumeClaim:
+      claimName: demo-pvc
+```
+
+Apply:
+
+```bash
+kubectl apply -f nginx-pod.yaml
+```
+
+---
+
+**5️⃣ Create Host Directory**
+
+```bash
+sudo mkdir -p /mnt/data
+sudo chmod 777 /mnt/data
+```
+
+🧾 Roman Urdu: Ye folder PV ke liye physical storage point banega.
+
+---
+
+**6️⃣ Verify Everything**
+
+```bash
+kubectl get pv
+kubectl get pvc
+kubectl get pods
+```
+
+Expected Output:
+
+* PV = Bound
+* PVC = Bound
+* Pod = Running
+
+---
+
+**7️⃣ Write Data Inside Pod**
+
+```bash
+kubectl exec -it nginx-pod -- /bin/bash
+echo "Persistent Storage Test" > /usr/share/nginx/html/index.html
+exit
+```
+
+🧾 Roman Urdu: Ye test file PV ke andar store ho jayegi — pod delete hone par bhi safe rahegi.
+
+---
+
+**8️⃣ Expose Pod via NodePort**
+
+```bash
+kubectl expose pod nginx-pod --type=NodePort --port=80
+kubectl get svc
+```
+
+🧾 Roman Urdu: Ye pod ko externally access karne ke liye NodePort service banata hai.
+
+Example Output:
+
+```
+nginx-pod NodePort 10.43.157.21 <none> 80:31056/TCP 1m
+```
+
+---
+
+**9️⃣ Access in Browser**
+
+```bash
+curl http://checkip.amazonaws.com
+```
+
+Suppose public IP = `54.201.123.45` and NodePort = `31056`
+Open browser:
+`http://54.201.123.45:31056`
+
+---
+
+### ⚠️ **Security Group Setting (For EC2 Users)**
+
+Allow inbound rule:
+
+* **Type:** Custom TCP
+* **Port Range:** 30000–32767
+* **Source:** 0.0.0.0/0
+
+---
+
+### ✅ **Final Result**
+
+* PV = Bound
+* PVC = Bound
+* Pod = Running
+* Data = Persistent (safe even if pod restarts)
+
+---
+
+### 🧠 **Roman Urdu Summary**
+
+PV storage ka kamra hai, PVC us kamre ki chabi. Pod jab chabi se andar jata hai to data likhta hai — agar pod delete ho jaye to bhi data PV mein safe rehta hai.

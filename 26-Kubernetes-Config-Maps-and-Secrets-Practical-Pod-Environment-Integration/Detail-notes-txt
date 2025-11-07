@@ -1,0 +1,158 @@
+# 🧩 ConfigMaps aur Secrets
+
+---
+
+## 📘 Conceptual Explanation
+
+**ConfigMap**: Kubernetes ka ek object hai jo application ke liye **configuration data** store karta hai jaise environment variables.
+**Secret**: Secure tarike se **sensitive information** (jaise passwords, API keys) store karne ke liye use hota hai.
+
+---
+
+## 🧠 Roman Urdu Explanation
+
+ConfigMap mein hum non-sensitive data store karte hain (jaise `APP_MODE`), jabke Secret mein sensitive info (jaise `passwords`, `API keys`) securely rakhi jati hai.
+
+---
+
+## ⚙️ Prerequisites
+
+| Requirement            | Command                    | Installed? |
+| ---------------------- | -------------------------- | ---------- |
+| Kubernetes Cluster     | `kubectl get nodes`        | ✅          |
+| kubectl Installed      | `kubectl version --client` | ✅          |
+| YAML Editor (nano)     | `nano --version`           | ✅          |
+| Internet Access        | `ping google.com`          | ✅          |
+| Docker (Minikube/KIND) | `docker version`           | ✅          |
+
+---
+
+## 🧪 Practical Work: Create ConfigMap & Secret
+
+### 🔹 Step 1: ConfigMap Banana
+
+```bash
+kubectl create configmap app-config --from-literal=APP_MODE=production
+```
+
+🧾 Is command se humne ek ConfigMap banaya jisme `APP_MODE=production` store hua (non-sensitive config).
+
+---
+
+### 🔹 Step 2: Secret Banana
+
+```bash
+kubectl create secret generic db-secret --from-literal=DB_PASSWORD=Pass123
+```
+
+🧾 Yeh Secret sensitive data securely store karta hai (like DB password).
+
+---
+
+### 🔹 Step 3: ConfigMap aur Secret ko Pod Mein Attach Karna
+
+```yaml
+env:
+- name: APP_MODE
+  valueFrom:
+    configMapKeyRef:
+      name: app-config
+      key: APP_MODE
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: db-secret
+      key: DB_PASSWORD
+```
+
+🧾 Is YAML ke zariye humne ConfigMap aur Secret dono ko pod mein environment variables ke through attach kiya.
+
+---
+
+## 🏢 Real-Life Scenario: E-Commerce Web App
+
+Aap ek **E-commerce website** deploy kar rahe hain Kubernetes pe jisme 3 components hain:
+
+* 🖥️ Frontend (React/Angular)
+* ⚙️ Backend (Node.js/Django)
+* 🛢️ Database (MySQL/PostgreSQL)
+
+### 🔓 Non-sensitive configuration (ConfigMap ke liye):
+
+* APP_MODE=production
+* LOG_LEVEL=debug
+
+### 🔐 Sensitive data (Secret ke liye):
+
+* DB_PASSWORD=Pass123
+* API_KEY=xyz-123
+
+| Config Type   | Example              | Store Kahan Karein |
+| ------------- | -------------------- | ------------------ |
+| Non-sensitive | APP_MODE             | ConfigMap          |
+| Sensitive     | DB_PASSWORD, API_KEY | Secret             |
+
+---
+
+## 🔄 Kubernetes Mein Kaise Kaam Karta Hai
+
+**Step 1:** ConfigMap create karna
+
+```bash
+kubectl create configmap app-config --from-literal=APP_MODE=production
+```
+
+🧾 Non-sensitive data store hua.
+
+**Step 2:** Secret create karna
+
+```bash
+kubectl create secret generic db-secret --from-literal=DB_PASSWORD=Pass123
+```
+
+🧾 Sensitive info securely store hui.
+
+**Step 3:** Pod ke andar attach karna
+
+```yaml
+env:
+- name: APP_MODE
+  valueFrom:
+    configMapKeyRef:
+      name: app-config
+      key: APP_MODE
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: db-secret
+      key: DB_PASSWORD
+```
+
+🧾 Pod start hone ke baad, ye dono variables backend container ke environment mein chalay jate hain.
+
+---
+
+## 🎯 Final Output
+
+* `APP_MODE=production` (ConfigMap se aaya)
+* `DB_PASSWORD=Pass123` (Secret se securely aaya)
+
+Backend app ko ye values mil gayin bina code mein directly likhe hue.
+
+---
+
+## 📦 Asli Zindagi Mein Faide
+
+| Feature        | Faida                                                         |
+| -------------- | ------------------------------------------------------------- |
+| **ConfigMap**  | App config easily change kar sakte ho bina image rebuild kiye |
+| **Secret**     | Passwords aur API keys code ke andar likhne ki zarurat nahi   |
+| **Separation** | Config aur Secret alag manage karke clean structure milta hai |
+
+---
+
+## 🧠 Roman Urdu Summary
+
+Agar aap ek **E-commerce app** deploy kar rahe ho, to aapko kuch non-sensitive values (jaise `APP_MODE`) aur kuch sensitive values (jaise `DB_PASSWORD`) chahiye hoti hain.
+Non-sensitive data ko **ConfigMap** mein store karte hain aur sensitive data ko **Secret** mein securely rakhte hain.
+Ye dono hum pod mein environment variables ke zariye attach karte hain taake app **secure aur easily manageable** tareeqe se chal sake.

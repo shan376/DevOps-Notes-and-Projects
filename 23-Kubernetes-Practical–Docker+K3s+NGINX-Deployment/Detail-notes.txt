@@ -1,0 +1,157 @@
+**📘 Kubernetes Intro**
+
+**💡 What is Kubernetes?**
+Kubernetes (K8s) ek open-source container orchestration platform hai jo multiple containers ko efficiently manage karta hai — jaise start/stop, scaling, updates, aur failure recovery.
+
+**Roman Urdu:**
+Kubernetes ek system hai jo multiple Docker containers ko manage karta hai — agar koi crash ho jaye to dobara chalu kar deta hai, load zyada ho to aur containers bana deta hai, aur updates smoothly apply karta hai.
+
+---
+
+**🌍 Real-World Example:**
+Socho aap ek e-commerce website chala rahe ho jisme:
+
+* frontend React ya Angular mein hai,
+* backend Node.js mein,
+* aur database MySQL mein.
+
+Kubernetes in tino ko alag-alag containers mein run karta hai aur ensure karta hai ke:
+
+* sab services up aur running rahen,
+* traffic balanced ho,
+* aur agar backend crash ho jaye to auto restart ho jaye.
+
+**Roman Urdu:**
+Socho ek shopping website hai — frontend, backend, aur database teen alag services hain. Kubernetes un sabko manage karta hai taake har cheez smoothly chale bina manual tension ke.
+
+---
+
+## 🧪 Lab: Docker + K3s + NGINX Deployment
+
+(With Roman Urdu Explanation & Error Note)
+
+---
+
+### 🔧 Step 1: Docker Installation
+
+```bash
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable docker --now
+docker --version
+```
+
+**Roman Urdu:**
+System update karo, Docker install karo, start karo aur ensure karo ke sahi kaam kar raha hai.
+
+---
+
+### 🚀 Step 2: Install K3s (Lightweight Kubernetes)
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo systemctl status k3s
+sudo k3s kubectl get nodes
+```
+
+**Roman Urdu:**
+K3s install karo — ye lightweight Kubernetes version hai. Status check karo aur dekho node ready hai ya nahi.
+
+---
+
+### ⚠️ Step 3: (Optional) Add SWAP Memory
+
+```bash
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+swapon --show
+free -h
+```
+
+**Roman Urdu:**
+1GB swap file banao, permissions set karo, swap active karo aur verify karo ke RAM aur swap dono active hain. Ye step low RAM instances ke liye helpful hai.
+
+---
+
+### 🌐 Step 4: Deploy NGINX on K3s
+
+```bash
+sudo k3s kubectl create deployment nginx --image=nginx
+sudo k3s kubectl expose deployment nginx --port=80 --type=NodePort
+sudo k3s kubectl get svc nginx
+```
+
+**Roman Urdu:**
+NGINX deployment banao aur usko NodePort ke zariye expose karo taake browser se access kar sako. Port check karo jo assign hua hai.
+
+---
+
+### ☁️ Step 5: AWS EC2 Inbound Rule Set Karna
+
+1. AWS Console → EC2 → Security Groups → Inbound Rules → Edit
+2. Add Rule:
+
+   * Type: Custom TCP
+   * Port Range: **30000–32767**
+   * Source: **Anywhere (0.0.0.0/0)**
+
+**Roman Urdu:**
+Ye step important hai! Kubernetes NodePort services isi port range (30000–32767) mein kaam karti hain. Agar sirf ek port allow karoge (jaise 30568), to har restart ke baad error aayega.
+
+---
+
+### ✅ Final Step: Access NGINX
+
+Browser mein likho:
+
+```
+http://<EC2-PUBLIC-IP>:<NodePort>
+```
+
+Example:
+
+```
+http://3.149.6.157:30568
+```
+
+Agar “**Welcome to nginx!**” likha aaye to lab successfully complete hai ✅
+
+**Roman Urdu:**
+Agar NGINX ka welcome page dikhe to samajh lo sab kuch sahi chal raha hai.
+
+---
+
+### ❌ Common Error:
+
+`ERR_CONNECTION_TIMED_OUT`
+**Wajah:** Sirf ek port allow kiya gaya tha instead of full NodePort range (30000–32767).
+**Solution:** Security Group mein puri range allow karo.
+
+---
+
+## 📅 Lab Summary
+
+| Step | Task                | Roman Urdu Explanation                          |
+| ---- | ------------------- | ----------------------------------------------- |
+| 1️⃣  | Docker Install      | Container engine jo Kubernetes ke liye base hai |
+| 2️⃣  | K3s Install         | Lightweight Kubernetes setup ready kiya         |
+| 3️⃣  | SWAP Add            | Low RAM pe system smooth chalane ke liye        |
+| 4️⃣  | NGINX Deployment    | Web server deploy kiya cluster mein             |
+| 5️⃣  | NodePort Create     | NGINX ko internet se connect karne ke liye      |
+| 6️⃣  | AWS Rules Configure | Port range open ki taake access error na aaye   |
+| 7️⃣  | Browser Access      | NGINX page successfully open hua                |
+
+---
+
+### 🛑 Error Jo Humne Fix Kiya
+
+**Problem:** Sirf ek port (32676) allow kiya tha.
+**Solution:** AWS Security Group mein **full port range (30000–32767)** allow kar di taake NodePort har baar access ho sake.
+
+---
+
+✅ **Final Result:**
+Kubernetes (K3s) aur Docker ke sath NGINX deployment successfully complete ho gaya. Browser se “Welcome to nginx!” visible hai — iska matlab cluster aur networking dono sahi kaam kar rahe hain.

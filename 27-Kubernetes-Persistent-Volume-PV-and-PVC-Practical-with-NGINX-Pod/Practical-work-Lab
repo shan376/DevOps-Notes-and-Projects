@@ -1,0 +1,219 @@
+**📁 Practical Work: Kubernetes PV + PVC + NGINX**
+
+---
+
+### ⚙️ **Step 1: Kubectl Setup**
+
+```bash
+alias kubectl='sudo k3s kubectl'
+```
+
+💬 Roman Urdu:
+Ye command shortcut banata hai taake har dafa “sudo k3s kubectl” likhne ki zarurat na ho. Ab sirf `kubectl` likhne se kaam chalega.
+
+---
+
+### 🧱 **Step 2: Persistent Volume (PV) Banana**
+
+```bash
+nano pv.yaml
+```
+
+YAML likho:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data"
+```
+
+Apply file:
+
+```bash
+kubectl apply -f pv.yaml
+```
+
+💬 Roman Urdu:
+Ye volume host ke `/mnt/data` folder se bind hota hai. Agar folder nahi bana hua to error aayega.
+
+---
+
+### 📂 **Step 3: Persistent Volume Claim (PVC) Banana**
+
+```bash
+nano pvc.yaml
+```
+
+YAML likho:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+Apply file:
+
+```bash
+kubectl apply -f pvc.yaml
+```
+
+💬 Roman Urdu:
+Ye PVC request karta hai 1Gi storage ke liye, aur automatically us PV se bind hota hai jo available hai.
+
+---
+
+### 🐳 **Step 4: Pod Create Karna (NGINX with PVC)**
+
+```bash
+nano nginx-pod.yaml
+```
+
+YAML likho:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: web-storage
+  volumes:
+    - name: web-storage
+      persistentVolumeClaim:
+        claimName: demo-pvc
+```
+
+Apply file:
+
+```bash
+kubectl apply -f nginx-pod.yaml
+```
+
+💬 Roman Urdu:
+Ye Pod NGINX container banata hai aur PVC ke zariye storage mount karta hai `/usr/share/nginx/html` path pe.
+
+---
+
+### 📦 **Step 5: Host Directory Banana**
+
+```bash
+sudo mkdir -p /mnt/data
+sudo chmod 777 /mnt/data
+```
+
+💬 Roman Urdu:
+Ye host path create karta hai jahan PV bind hua hai. Permission 777 de rahe hain taake access issue na aaye.
+
+---
+
+### 🔍 **Step 6: Verify Resources**
+
+```bash
+kubectl get pv
+kubectl get pvc
+kubectl get pods
+```
+
+💬 Roman Urdu:
+Yahan check karo ke:
+
+* PV = Bound
+* PVC = Bound
+* Pod = Running
+
+Agar sab theek hai to connection sahi bana hua hai.
+
+---
+
+### ✍️ **Step 7: Pod ke Andar Data Likho**
+
+```bash
+kubectl exec -it nginx-pod -- /bin/bash
+echo "Persistent Storage Test" > /usr/share/nginx/html/index.html
+exit
+```
+
+💬 Roman Urdu:
+Ye command pod ke andar jaake ek test file likhti hai taake verify ho ke storage working hai.
+
+---
+
+### 🌐 **Step 8: Pod ko NodePort Service se Expose Karna**
+
+```bash
+kubectl expose pod nginx-pod --type=NodePort --port=80
+kubectl get svc
+```
+
+💬 Roman Urdu:
+Ye command NGINX pod ko externally access karne ke liye NodePort service banati hai. Output mein port number milega jaise `31056`.
+
+---
+
+### 🌍 **Step 9: EC2 Public IP Se Access Karna**
+
+```bash
+curl http://checkip.amazonaws.com
+```
+
+Example:
+Public IP = `54.201.123.45`
+NodePort = `31056`
+
+Browser mein open karo:
+
+```
+http://54.201.123.45:31056
+```
+
+💬 Roman Urdu:
+Yahan se NGINX page open hoga jismein aapka “Persistent Storage Test” likha hoga — ye prove karta hai ke data persistent storage mein save hai.
+
+---
+
+### 🔐 **Step 10: EC2 Security Group Configure Karna**
+
+✅ Make sure inbound rule mein:
+
+* Type: Custom TCP
+* Port Range: 30000–32767
+* Source: 0.0.0.0/0
+
+💬 Roman Urdu:
+Ye step ensure karta hai ke NodePort open ho aur browser se access mil sake.
+
+---
+
+### ✅ **Final Output Expectation**
+
+* PV = Bound
+* PVC = Bound
+* Pod = Running
+* Browser pe message: **“Persistent Storage Test”**
+
+💬 Roman Urdu:
+Ab aapka NGINX pod successfully persistent storage ke sath connect ho gaya hai — data safe rahega even agar pod delete ho jaye.

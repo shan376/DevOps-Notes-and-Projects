@@ -1,0 +1,137 @@
+# 🧩 Helm Basics
+
+## 📘 Conceptual Explanation
+
+**Helm** Kubernetes ka package manager hai jo applications ko **Charts** ke form mein deploy karta hai.
+Charts ke andar predefined YAML templates hotay hain jo deployment, service, PVC, etc. define karte hain.
+
+**Roman Urdu Explanation:**
+Helm Linux ke apt/yum jaisa hai apps ko install karne ke liye. Charts ek folder hote hain jisme multiple YAML templates hoti hain. Helm ka fayda ye hai ke aap easily configuration change karke same app ko multiple environments (dev, staging, prod) mein deploy kar sakte ho.
+
+---
+
+## ⚙️ Kubernetes Installation on New EC2 Instance
+
+**Step 1: Install k3s (Single Node Dev Cluster)**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+```
+
+*Roman Urdu:* Ye command lightweight k3s Kubernetes cluster install karta hai, single node dev ke liye best.
+
+**Step 2: Set KUBECONFIG**
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+```
+
+*Roman Urdu:* Kubectl ko batata hai ke cluster ka config file kahan se load kare.
+
+**Step 3: Check Node Status**
+
+```bash
+kubectl get nodes
+```
+
+*Roman Urdu:* Cluster mein node ki list aur status dikhata hai. STATUS "Ready" ho to cluster tayar hai.
+
+---
+
+## ✅ Practical Work: Install Helm & Create Chart
+
+**Step 1: Install Helm**
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+*Roman Urdu:* Helm install aur verify karo.
+
+**Step 2: Create Chart**
+
+```bash
+helm create mychart
+```
+
+*Roman Urdu:* Ye command new chart folder banata hai jisme `templates/`, `values.yaml`, aur `Chart.yaml` hoti hain.
+
+**Folder Structure Example:**
+
+```
+mychart/
+├── Chart.yaml
+├── values.yaml
+├── templates/
+│   ├── deployment.yaml
+│   ├── service.yaml
+```
+
+**Step 3: Deploy App Using Helm**
+
+```bash
+helm install myapp ./mychart
+kubectl get all
+helm list
+```
+
+*Roman Urdu:* Chart ke base par app deploy hoti hai with name `myapp`.
+
+---
+
+## 📚 Assignment: Deploy App Using Helm Chart
+
+**Step 1: Modify values.yaml**
+
+```bash
+nano mychart/values.yaml
+```
+
+Update file:
+
+```yaml
+image:
+  repository: nginx
+  tag: latest
+service:
+  type: NodePort
+  port: 80
+```
+
+*Roman Urdu:*
+
+* `repository`: nginx → DockerHub se image.
+* `tag`: latest → latest version pull hogi.
+* `type`: NodePort → service externally expose hogi.
+* `port`: 80 → app ka internal port.
+
+**Step 2: Reinstall Helm Chart**
+
+```bash
+helm uninstall myapp
+helm install myapp ./mychart
+kubectl get svc
+```
+
+*Roman Urdu:* Pehle existing deployment uninstall karo, phir updated chart install karo.
+
+**Step 3: Access Service in Browser**
+
+```bash
+curl http://checkip.amazonaws.com
+```
+
+Browser URL: `http://<EC2_PUBLIC_IP>:<NodePort>`
+*Roman Urdu:* EC2 public IP aur NodePort use karke browser mein open karo, nginx welcome page dikhna chahiye.
+
+**Important:** EC2 Security Group mein NodePort range 30000–32667 allow honi chahiye.
+
+---
+
+## ✅ Summary
+
+* Helm Installed ✔️
+* Chart Created ✔️
+* App Deployed via Helm ✔️
+* Assignment Completed ✔️

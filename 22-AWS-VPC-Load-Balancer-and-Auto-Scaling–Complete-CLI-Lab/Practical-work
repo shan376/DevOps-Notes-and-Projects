@@ -1,0 +1,187 @@
+✅ **Practical Work: AWS VPC, Load Balancer & Auto Scaling*
+
+---
+
+### 🧩 **Step 1: Create VPC**
+
+```bash
+aws ec2 create-vpc --cidr-block 10.0.0.0/16
+```
+
+🧠 *Roman Urdu:* Ye command ek nayi private city banati hai jahan hum apna pura network setup karenge.
+
+---
+
+### 🧩 **Step 2: Create Subnets (Public & Private)**
+
+```bash
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.1.0/24 --availability-zone us-east-1a
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.2.0/24 --availability-zone us-east-1b
+```
+
+🧠 *Roman Urdu:* Public aur private areas banaye ja rahe hain — jese office ka visitor area aur staff-only area.
+
+---
+
+### 🧩 **Step 3: Create Internet Gateway (IGW)**
+
+```bash
+aws ec2 create-internet-gateway
+aws ec2 attach-internet-gateway --internet-gateway-id igw-xxxxxxxx --vpc-id vpc-xxxxxxxx
+```
+
+🧠 *Roman Urdu:* Ye ek gate hai jisse public subnet internet se connect hota hai.
+
+---
+
+### 🧩 **Step 4: Create Route Table & Attach to Public Subnet**
+
+```bash
+aws ec2 create-route-table --vpc-id vpc-xxxxxxxx
+aws ec2 create-route --route-table-id rtb-xxxxxxxx --destination-cidr-block 0.0.0.0/0 --gateway-id igw-xxxxxxxx
+aws ec2 associate-route-table --route-table-id rtb-xxxxxxxx --subnet-id subnet-xxxxxxxx
+```
+
+🧠 *Roman Urdu:* Routing rules set karte hain takay internet traffic public subnet tak aa sake.
+
+---
+
+### 🧩 **Step 5: Launch EC2 Instances (Public & Private)**
+
+```bash
+aws ec2 run-instances \
+--image-id ami-xxxxxxxx \
+--count 1 \
+--instance-type t2.micro \
+--key-name mykey \
+--subnet-id subnet-public \
+--security-group-ids sg-xxxxxxxx \
+--associate-public-ip-address
+```
+
+🧠 *Roman Urdu:* Ye public subnet me ek web server launch kar raha hai. Private me same command se instance launch hoga bas IP associate mat karna.
+
+---
+
+### 🧩 **Step 6: Create Target Group for Load Balancer**
+
+```bash
+aws elbv2 create-target-group \
+--name my-target-group \
+--protocol HTTP \
+--port 80 \
+--vpc-id vpc-xxxxxxxx \
+--target-type instance
+```
+
+🧠 *Roman Urdu:* Ye list hai un servers ki jahan load balancer traffic bhejega.
+
+---
+
+### 🧩 **Step 7: Create Application Load Balancer**
+
+```bash
+aws elbv2 create-load-balancer \
+--name my-alb \
+--subnets subnet-aaa subnet-bbb \
+--security-groups sg-xxxxxxxx \
+--scheme internet-facing \
+--type application
+```
+
+🧠 *Roman Urdu:* Ye traffic manager hai jo visitors ko servers me evenly divide karega.
+
+---
+
+### 🧩 **Step 8: Register Instances with Target Group**
+
+```bash
+aws elbv2 register-targets \
+--target-group-arn arn:aws:elasticloadbalancing:region:account-id:targetgroup/my-target-group/xxxxxxxx \
+--targets Id=i-xxxxxxx Id=i-yyyyyyy
+```
+
+🧠 *Roman Urdu:* Ab servers ko bataya ja raha hai ke ye traffic receive karenge — jaise manager dukaanon ki list banata hai.
+
+---
+
+### 🧩 **Step 9: Create Launch Template (For Auto Scaling)**
+
+```bash
+nano template-config.json
+```
+
+Paste this JSON:
+
+```json
+{
+  "ImageId": "ami-xxxxxxxx",
+  "InstanceType": "t2.micro",
+  "KeyName": "mykey",
+  "SecurityGroupIds": ["sg-xxxxxxxx"],
+  "UserData": "IyEvYmluL2Jhc2gKc3VkbyBhcHQgdXBkYXRlCnN1ZG8gYXB0IGluc3RhbGwgeWEgYXBhY2hlMjIK"
+}
+```
+
+Then create:
+
+```bash
+aws ec2 create-launch-template \
+--launch-template-name my-template \
+--version-description "v1" \
+--launch-template-data file://template-config.json
+```
+
+🧠 *Roman Urdu:* Ye ek “form” hai jisme server ka poora setup likha gaya hai — auto scaling isko use karega.
+
+---
+
+### 🧩 **Step 10: Create Auto Scaling Group**
+
+```bash
+aws autoscaling create-auto-scaling-group \
+--auto-scaling-group-name my-asg \
+--launch-template LaunchTemplateName=my-template,Version=1 \
+--min-size 1 \
+--max-size 3 \
+--desired-capacity 1 \
+--vpc-zone-identifier "subnet-aaa,subnet-bbb" \
+--target-group-arns arn:aws:elasticloadbalancing:region:account-id:targetgroup/my-target-group/xxxxxxxx
+```
+
+🧠 *Roman Urdu:* Ye system automatically naye servers launch karega jab load barhega, aur kam karega jab traffic kam hoga.
+
+---
+
+### 🧩 **Step 11: Simulate Load (Stress Test)**
+
+```bash
+sudo apt update
+sudo apt install -y stress
+stress --cpu 2
+```
+
+🧠 *Roman Urdu:* Ye CPU par load create karta hai takay Auto Scaling apna kaam dikhaye — bilkul waise jaise zyada customers aane par nayi dukaan khulti hai.
+
+---
+
+### 🧩 **Step 12: Check Resource IDs (Replacement Commands)**
+
+```bash
+aws ec2 describe-images --owners 099720109477 --region us-east-1
+aws ec2 describe-key-pairs --query "KeyPairs[*].KeyName" --output table
+aws ec2 describe-security-groups --output table
+aws ec2 describe-subnets --output table
+aws ec2 describe-vpcs --output table
+aws ec2 describe-instances --query "Reservations[*].Instances[*].InstanceId" --output text
+aws elbv2 describe-target-groups --output table
+```
+
+🧠 *Roman Urdu:* Ye commands IDs aur ARNs check karne ke liye use hoti hain jab kisi step me replacement values chahiye hoti hain.
+
+---
+
+✅ **Final Output:**
+Aapne AWS CLI se complete setup banaya — ek **VPC network**, ek **Application Load Balancer**, aur **Auto Scaling Group** jo load ke mutabiq servers manage karta hai.
+
+Bilkul waise hi jaise ek city (VPC) me traffic manager (Load Balancer) aur staff manager (Auto Scaling) mil ke system smooth chalate hain.

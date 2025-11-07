@@ -1,0 +1,125 @@
+### 🧪 **Practical Work + Assignment: Kubernetes Services & YAML Configuration**
+
+---
+
+#### ✅ **Step 1: Pod YAML File Banana**
+
+Command chalayein:
+
+```bash
+nano pod.yaml
+```
+
+🧾 *Roman Urdu:* Ye command ek nayi YAML file banane ke liye hai jahan hum pod ka configuration likhenge.
+
+**Code (pod.yaml):**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  labels:
+    app: demo
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+```
+
+🧾 *Roman Urdu:* Is YAML file mein ek simple nginx container define kiya gaya hai jo pod ke andar run karega.
+
+---
+
+#### ✅ **Step 2: YAML File Apply Karna (Pod Create Karna)**
+
+Command chalayein:
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+🧾 *Roman Urdu:* Ye command YAML file ko apply karti hai aur pod create ho jata hai. Ab aapka nginx container cluster ke andar run karega.
+
+---
+
+#### ✅ **Step 3: Service YAML File Banana**
+
+Command chalayein:
+
+```bash
+nano service.yaml
+```
+
+🧾 *Roman Urdu:* Ab hum ek service bana rahe hain jo pod ko internet se access karne layak karegi.
+
+**Code (service.yaml):**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+spec:
+  selector:
+    app: demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: NodePort
+```
+
+🧾 *Roman Urdu:* Is file mein humne NodePort service define ki hai jo pod ko ek permanent IP aur external access provide karegi.
+
+---
+
+#### ✅ **Step 4: YAML File Apply Karna (Service Create Karna)**
+
+Command chalayein:
+
+```bash
+kubectl apply -f service.yaml
+```
+
+🧾 *Roman Urdu:* Ye command service.yaml file ko apply karti hai aur ek NodePort service create kar deti hai.
+
+---
+
+#### ✅ **Step 5: Service Verify Karna**
+
+Command chalayein:
+
+```bash
+kubectl get svc
+```
+
+🧾 *Roman Urdu:* Ye command sab services ki list dikhati hai, jisme NodePort number bhi hota hai — jisse aap web browser se pod ko access kar saktay hain.
+
+---
+
+#### 🌐 **Browser Se Access Karna**
+
+Agar aap EC2 instance par hain, to apni service ko browser mein access karein:
+
+```bash
+http://<your-ec2-public-ip>:<NodePort>
+```
+
+**Example:**
+
+```bash
+http://54.173.50.100:30007
+```
+
+🧾 *Roman Urdu:* Ye URL aapke EC2 instance ke public IP aur NodePort ke zariye Nginx page open karega.
+
+⚠️ *Note:* Ensure karein ke aapke firewall ya security group mein NodePort range (30000–32767) open ho.
+
+---
+
+#### ✅ **Final Result**
+
+* Pod successfully create hua.
+* NodePort service ban gayi jo pod ko externally accessible banati hai.
+* Browser se Nginx ka welcome page successfully open ho gaya.

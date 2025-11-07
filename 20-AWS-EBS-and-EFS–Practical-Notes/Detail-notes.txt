@@ -1,0 +1,247 @@
+# 📘 EBS aur EFS
+
+## ⚙️ EBS (Elastic Block Store)
+
+EBS ek **persistent storage** hota hai jo **sirf ek EC2 instance** ke sath attach hota hai.
+Isay aap **virtual hard disk (HDD/SSD)** samajh lo jo EC2 machine ke sath lagi hoti hai.
+Is par EC2 ka **Operating System, applications aur data** store hota hai.
+Agar EC2 stop ya restart ho bhi jaye to data safe rehta hai.
+
+📌 **Purpose:**
+
+* EC2 instance ko dedicated aur reliable storage dena.
+* Data store karna jo sirf ek server use kare (e.g. database, website files).
+
+📦 **Main Use Case:**
+Ek EC2 machine ke liye ek EBS volume hota hai jo fast aur permanent disk storage deta hai.
+
+🧠 **Roman Urdu:**
+EBS ki zarurat isliye hoti hai kyunki EC2 ko apni personal drive chahiye hoti hai jahan wo apni files, OS aur apps rakhe.
+Jaise aapke laptop ki hard drive hoti hai, waise hi EBS EC2 ki hard drive hai. Ye sirf ek machine ke liye hoti hai.
+
+---
+
+## 🌐 EFS (Elastic File System)
+
+EFS ek **shared file system** hai jise **multiple EC2 instances** ek saath access kar sakti hain.
+Socho jaise ek **network shared folder (Google Drive ya office folder)** jahan sab log ek hi waqt files dekh aur likh sakte hain.
+
+📌 **Purpose:**
+
+* Data share karna multiple EC2 instances ke beech.
+* Scalable applications ke liye jahan sab servers ko same files access karni hoti hain (e.g. shared web content, logs, user files).
+
+📦 **Main Use Case:**
+Multiple EC2 instances ek hi file storage ko bina conflict ke access karti hain.
+
+🧠 **Roman Urdu:**
+EFS isliye use hota hai kyunki kabhi kabhi ek folder ya file aisi chahiye hoti hai jo kai machines ek saath use kar saken.
+Jaise office ka shared folder hota hai, waise hi EFS ek shared folder hai jo kai EC2 instances ke liye accessible hota hai.
+
+---
+
+## 🧩 Real-Life Analogy
+
+* **EBS = Personal Laptop Hard Drive (sirf aap ke liye)**
+* **EFS = Office Shared Folder (sab ke liye)**
+
+🧠 **Roman Urdu:**
+EBS personal storage hai, jabke EFS shared storage hai. Real-world apps mein EBS OS aur app data ke liye hota hai, aur EFS shared files (images, configs, logs) ke liye use hota hai.
+
+---
+
+## 💻 Real-Life Example
+
+🎒 **Socho:**
+
+* EC2 instance = Laptop (bina external hard disk ke)
+* EBS Volume = USB hard drive
+
+Aapko zyada storage chahiye to aap ek USB drive attach karte ho, format karte ho aur use karte ho.
+
+🧠 **Roman Urdu:**
+EC2 ek laptop jesa hai aur EBS ek USB hard drive. Isay plug-in (attach) karo, format karo, aur folder bana ke use karo — itna hi process hota hai EBS ka.
+
+---
+
+## 🧪 Practical Work
+
+### ✅ **Prerequisites:**
+
+1. EC2 instance (Ubuntu) already running
+2. AWS CLI installed and configured (`aws configure`)
+3. IAM user/role ke paas EC2 full access permissions
+4. SSH access via PuTTY working
+
+---
+
+### 🔹 **Step 1: Create EBS Volume via CLI**
+
+```bash
+aws ec2 create-volume \
+--availability-zone us-east-1a \
+--size 5 \
+--volume-type gp2
+```
+
+* Replace `us-east-1a` apne EC2 zone ke sath
+* Volume size = 5 GiB
+* Type = gp2 (General Purpose SSD)
+
+📘 Output Example:
+
+```json
+{
+ "VolumeId": "vol-0abc123def456...",
+ ...
+}
+```
+
+🧠 **Roman Urdu:**
+Ye command ek naya 5GB ka EBS volume banati hai.
+Output se `VolumeId` copy kar lo (vol-xxxxxx).
+Note: Instance aur Volume ka zone same hona chahiye.
+
+---
+
+### 🔹 **Step 2: Get EC2 Instance ID**
+
+```bash
+curl http://169.254.169.254/latest/meta-data/instance-id
+```
+
+📘 Output:
+
+```
+i-0123abcdef4567gh
+```
+
+🧠 **Roman Urdu:**
+Ye command EC2 instance ka ID dikhati hai jo attach karte waqt chahiye hota hai.
+
+---
+
+### 🔹 **Step 3: Attach EBS Volume to EC2**
+
+```bash
+aws ec2 attach-volume \
+--volume-id vol-0abc123def456... \
+--instance-id i-0123abcdef4567gh \
+--device /dev/xvdf
+```
+
+📌 Make sure:
+
+* Correct `volume-id` aur `instance-id` use karo
+* Device: `/dev/xvdf` safe option hai
+
+🧠 **Roman Urdu:**
+Ab EBS volume ko EC2 se attach kar rahe ho, jaise external USB drive connect karte hain.
+
+---
+
+### 🔹 **Step 4: Check Attached Volume**
+
+```bash
+lsblk
+```
+
+🧠 **Roman Urdu:**
+Ye command batati hai system mein kaun kaun si drives lagi hain. Agar `/dev/xvdf` dikh gaya to sab sahi hai.
+
+---
+
+### 🔹 **Step 5: Format EBS Volume**
+
+```bash
+sudo mkfs -t ext4 /dev/xvdf
+```
+
+🧠 **Roman Urdu:**
+Drive ko pehli baar use karne ke liye format karna zaroori hai. EXT4 ek common Linux format hai.
+
+---
+
+### 🔹 **Step 6: Mount EBS Volume**
+
+```bash
+sudo mkdir /data
+sudo mount /dev/xvdf /data
+```
+
+🧠 **Roman Urdu:**
+Ab `/data` folder banaya jahan ye volume mount hoga. Ab data usi folder mein store hoga.
+
+---
+
+### 🔹 **Step 7: Make Mount Persistent After Reboot (Optional)**
+
+1. UUID check karo:
+
+```bash
+sudo blkid /dev/xvdf
+```
+
+2. File edit karo:
+
+```bash
+sudo nano /etc/fstab
+```
+
+3. Line add karo:
+
+```
+UUID=<your-uuid> /data ext4 defaults,nofail 0 2
+```
+
+🧠 **Roman Urdu:**
+Agar system reboot ho jaye to ye setting ensure karegi ke `/data` auto-mount ho jaye.
+Production setup ke liye ye zaroori hota hai.
+
+---
+
+## 🧪 **Assignment: Take Snapshot via CLI**
+
+```bash
+aws ec2 create-snapshot \
+--volume-id vol-0abc123def456... \
+--description "CLI Snapshot Backup"
+```
+
+📘 Output Example:
+
+```json
+{
+ "SnapshotId": "snap-0abc123xyz...",
+ ...
+}
+```
+
+🧠 **Roman Urdu:**
+Snapshot ek backup image hoti hai is volume ki. Agar data delete ya corrupt ho jaye to is snapshot se wapas recover kar sakte ho.
+
+---
+
+## 🔄 **Optional: Restore Snapshot**
+
+1. Snapshot se naya volume banao:
+
+```bash
+aws ec2 create-volume \
+--availability-zone us-east-1a \
+--snapshot-id snap-0abc123xyz... \
+--volume-type gp2
+```
+
+2. Attach aur mount karlo same steps se.
+
+🧠 **Roman Urdu:**
+Snapshot se naya volume bana ke purani state recover ki ja sakti hai.
+Ye disaster recovery ka best method hai.
+
+---
+
+✅ **Final Roman Urdu Note:**
+EBS ek single EC2 ki personal drive hoti hai, jabke EFS ek shared folder hota hai jo kai EC2s ek saath use kar sakti hain.
+Production apps mein dono ka combination use hota hai —
+EBS system aur application data ke liye, aur EFS shared files aur logs ke liye.

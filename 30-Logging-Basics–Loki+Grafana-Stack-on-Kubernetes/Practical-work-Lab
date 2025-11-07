@@ -1,0 +1,140 @@
+# Loki + Grafana on Kubernetes (K3s)
+
+## 🧩 Practical Work: Install Loki Stack using Helm
+
+### Pre-Requisites
+1. **Launch EC2 (Ubuntu)**
+   - t3.medium, Security: SSH 22, HTTP 80, HTTPS 443, optional NodePort 3000–32767
+2. **Update Ubuntu & Install Tools**
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl wget git vim -y
+````
+
+3. **Install Docker**
+
+```bash
+curl -fsSL https://get.docker.com | sudo bash
+sudo usermod -aG docker $USER
+newgrp docker
+docker --version
+```
+
+4. **Install K3s**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo kubectl get nodes
+echo "alias kubectl='k3s kubectl'" >> ~/.bashrc
+source ~/.bashrc
+```
+
+5. **Fix kubectl (optional)**
+
+```bash
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $USER:$USER ~/.kube/config
+kubectl get nodes
+```
+
+6. **Install Helm**
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+7. **Create Monitoring Namespace**
+
+```bash
+kubectl create namespace monitoring
+kubectl get ns
+```
+
+---
+
+### Step 1: Add Grafana Helm Repo
+
+```bash
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+*Ye command Grafana ke charts ko Helm ke sath add kar deta hai.*
+
+---
+
+### Step 2: Install Loki Stack
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+helm ls -A
+helm install loki grafana/loki-stack --namespace monitoring
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+```
+
+*Ye Loki (logs), Promtail (collector), aur optional Grafana dashboards install karta hai.*
+
+---
+
+### Step 3: Verify Installation
+
+```bash
+kubectl get all -n monitoring
+```
+
+*Check karein pods: loki-0, promtail-xxxxx, grafana-xxxxxx*
+
+---
+
+### Step 4: Access Grafana UI
+
+```bash
+kubectl get svc -n monitoring loki-grafana
+kubectl patch svc loki-grafana -n monitoring -p '{"spec": {"type":"NodePort"}}' # if needed
+kubectl get svc -n monitoring loki-grafana
+```
+
+* Browser: `http://<EC2-Public-IP>:<NodePort>`
+* Login: `admin / admin123`
+
+---
+
+### Step 5: Configure Loki as Data Source
+
+* Grafana → Settings → Data Sources → Add → Loki
+* URL: `http://loki.monitoring.svc.cluster.local:3100` → Save & Test
+
+---
+
+### Step 6: Import Loki Dashboard
+
+* Grafana → + → Import → Dashboard ID: 13407 → Loki as Data Source → Import
+
+---
+
+### Step 7: View Logs
+
+* Grafana Explore → Loki as source
+* Queries: `{app="nginx"}`, `{namespace="default"}`
+* Filter by pod, labels, container
+
+---
+
+## 📌 Assignment Tasks
+
+1. Install EC2 Ubuntu instance and set up K3s.
+2. Install Docker, Helm, and create monitoring namespace.
+3. Add Grafana Helm repo and install Loki stack.
+4. Verify all pods and services are running.
+5. Access Grafana UI, configure Loki data source.
+6. Import Loki dashboard and explore logs using different queries.
+7. Screenshot logs of different pods and namespaces as proof of successful setup.
+
+---
+
+## 🧠 Roman Urdu Summary
+
+Humne Loki install kiya taake pods ke logs Promtail se collect ho kar Grafana mein visualize hon. Ab easily dekh sakte hain kaunse pod ne kya log produce kiya aur errors quickly identify ho jate hain. Assignment mein same steps follow kar ke proof of setup ready karna hai.
+
