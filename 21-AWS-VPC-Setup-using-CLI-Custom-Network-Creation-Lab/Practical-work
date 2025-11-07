@@ -1,0 +1,156 @@
+## 🧩 **Practical Work – VPC Basics using AWS CLI (Ubuntu Version)**
+
+---
+
+### 🔰 **Step 0 – AWS CLI Install & Configure (Only First Time)**
+
+**Step 0.1:**
+
+```bash
+sudo apt update -y
+sudo apt install -y unzip curl
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+📌 *CLI install kar rahe hain taake hum terminal se AWS resources manage kar saken.*
+
+**Step 0.2:**
+
+```bash
+aws --version
+```
+
+📌 *Yeh check karne ke liye ke CLI sahi install ho gaya hai.*
+
+**Step 0.3:**
+
+```bash
+aws configure
+```
+
+📌 *Yahan AWS Access Key, Secret Key, region aur format set karte hain jisse CLI AWS se connect ho jaye.*
+
+---
+
+### 🚀 **Step 1 – Create VPC**
+
+```bash
+aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=MyVPC}]'
+```
+
+📌 *Yeh command ek naya private network (VPC) banati hai jisme hum apni subnets aur servers rakhenge.*
+
+---
+
+### **Step 2 – Get VPC ID**
+
+```bash
+aws ec2 describe-vpcs --filters "Name=tag:Name,Values=MyVPC" --query "Vpcs[0].VpcId" --output text
+```
+
+📌 *Agar VPC ID output mein miss ho jaye to yeh command ID nikalne ke liye use hoti hai.*
+
+---
+
+### **Step 3 – Create Public Subnet**
+
+```bash
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.1.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PublicSubnet}]'
+```
+
+📌 *Public subnet wo jagah hai jahan internet-facing servers (web servers) rahenge.*
+
+---
+
+### **Step 4 – Create Private Subnet**
+
+```bash
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.2.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PrivateSubnet}]'
+```
+
+📌 *Private subnet sirf internal resources (jaise databases) ke liye hoti hai.*
+
+---
+
+### **Step 5 – Create Internet Gateway (IGW)**
+
+```bash
+aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=MyIGW}]'
+```
+
+📌 *Internet Gateway VPC ka internet access point hota hai.*
+
+---
+
+### **Step 6 – Attach IGW to VPC**
+
+```bash
+aws ec2 attach-internet-gateway --internet-gateway-id igw-xxxxxxxx --vpc-id vpc-xxxxxxxx
+```
+
+📌 *Ab VPC ko internet ke sath connect kar diya gaya.*
+
+---
+
+### **Step 7 – Create Route Table**
+
+```bash
+aws ec2 create-route-table --vpc-id vpc-xxxxxxxx --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PublicRouteTable}]'
+```
+
+📌 *Route Table network traffic ke rules manage karti hai.*
+
+---
+
+### **Step 8 – Create Route to IGW**
+
+```bash
+aws ec2 create-route --route-table-id rtb-xxxxxxxx --destination-cidr-block 0.0.0.0/0 --gateway-id igw-xxxxxxxx
+```
+
+📌 *Is step mein hum internet traffic ke liye rule banate hain.*
+
+---
+
+### **Step 9 – Associate Public Subnet with Route Table**
+
+```bash
+aws ec2 associate-route-table --subnet-id subnet-xxxxxxxx --route-table-id rtb-xxxxxxxx
+```
+
+📌 *Public subnet ko internet route se connect kar rahe hain.*
+
+---
+
+### **Step 10 – Enable Auto-Assign Public IP**
+
+```bash
+aws ec2 modify-subnet-attribute --subnet-id subnet-xxxxxxxx --map-public-ip-on-launch
+```
+
+📌 *Yeh enable karta hai ke har EC2 jo public subnet mein launch ho, usko auto public IP mil jaye.*
+
+---
+
+### **Step 11 – Launch EC2 Instance (Public Subnet)**
+
+```bash
+aws ec2 run-instances --image-id ami-xxxxxxxx --count 1 --instance-type t2.micro --key-name MyKeyPair --subnet-id subnet-xxxxxxxx --associate-public-ip-address --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=MyPublicEC2}]'
+```
+
+📌 *Yeh command public subnet ke andar ek EC2 server launch karti hai jo internet se accessible hota hai.*
+
+---
+
+## 🧾 **VPC Practical Summary – Roman Urdu**
+
+1. VPC banaya jisme apna network setup kiya.
+2. Public aur Private subnets banaye.
+3. Internet Gateway create karke attach kiya.
+4. Route Table banayi aur IGW se connect kiya.
+5. Public Subnet ko Route Table se joda.
+6. Public IP auto-assign enable kiya.
+7. EC2 Instance launch kiya jo internet se connect ho gaya.
+

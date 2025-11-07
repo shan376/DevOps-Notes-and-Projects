@@ -1,0 +1,62 @@
+# 🧪 **Assignment – AWS EBS Snapshot (Backup & Restore)**
+
+### 🔹 **Step 1: Snapshot Create Karna (Backup Banana)**
+
+```bash
+aws ec2 create-snapshot \
+--volume-id vol-0abc123def456... \
+--description "CLI Snapshot Backup"
+```
+
+🧠 Ye command tumhare EBS volume ka **snapshot (backup image)** banati hai.
+Matlab agar kal ko data delete ya corrupt ho jaye, to isi snapshot se pura volume wapas restore kiya ja sakta hai.
+Output mein tumhe `SnapshotId` milega (jaise `snap-0abc123xyz...`), use save kar lo.
+
+---
+
+### 🔹 **Step 2: Snapshot Se Naya Volume Banana (Restore Karna)**
+
+```bash
+aws ec2 create-volume \
+--availability-zone us-east-1a \
+--snapshot-id snap-0abc123xyz... \
+--volume-type gp2
+```
+
+🧠 Ye command tumhare snapshot se **ek naya EBS volume** create karti hai.
+Isse tum apna purana data ya configuration **as it is** wapas le sakte ho — bilkul backup restore jesa.
+
+---
+
+### 🔹 **Step 3: Naye Volume Ko EC2 Pe Attach Karna**
+
+```bash
+aws ec2 attach-volume \
+--volume-id vol-0new123def456... \
+--instance-id i-0123abcdef4567gh \
+--device /dev/xvdf
+```
+
+🧠 Ab tum naya (restored) volume apne EC2 instance ke sath attach kar rahe ho.
+Jaise external hard drive ko dubara plug-in karte ho taake purane files access ho jayein.
+
+---
+
+### 🔹 **Step 4: Volume Mount Karna (Use Karne Ke Liye Ready Banana)**
+
+```bash
+sudo mkdir /data
+sudo mount /dev/xvdf /data
+```
+
+🧠 Ye step volume ko **mount** karta hai jahan tumhare purane data automatically available ho jata hai.
+Ab tum `/data` folder me ja ke files check kar sakte ho — sab wapas milenge.
+
+---
+
+### ✅ **Final Note:**
+
+Snapshot lena aur usse restore karna **disaster recovery** ke liye sabse simple aur powerful method hai.
+EBS snapshot se tum apna data hamesha safe aur recoverable rakh sakte ho — chahe EC2 delete ho ya volume corrupt ho jaye.
+
+---

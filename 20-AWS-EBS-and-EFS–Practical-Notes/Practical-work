@@ -1,0 +1,132 @@
+# ⚙️ **Practical Work – AWS EBS Volume Setup (via CLI)**
+
+### 🧩 **Prerequisites**
+
+1. EC2 instance (Ubuntu) chal raha ho.
+2. AWS CLI install aur configure ho (`aws configure`).
+3. IAM user/role ke paas EC2 full access ho.
+4. SSH access PuTTY ke through working ho.
+
+---
+
+### 🔹 **Step 1: Naya EBS Volume Create Karna**
+
+```bash
+aws ec2 create-volume \
+--availability-zone us-east-1a \
+--size 5 \
+--volume-type gp2
+```
+
+📘 Ye command ek **5GB ka naya EBS volume** create karti hai usi AZ mein jahan tumhara EC2 hai.
+Output mein `VolumeId` milega (jaise `vol-0abc123def456...`), use copy kar lo.
+💡 *Note:* Instance aur volume dono same zone mein hone chahiye tabhi attach hoga.
+
+---
+
+### 🔹 **Step 2: EC2 Instance ID Nikalna**
+
+```bash
+curl http://169.254.169.254/latest/meta-data/instance-id
+```
+
+Ye command tumhare EC2 ka instance ID return karegi (jaise `i-0123abcdef4567gh`).
+Ye ID volume attach karte waqt use hoti hai.
+
+---
+
+### 🔹 **Step 3: EBS Volume ko EC2 se Attach Karna**
+
+```bash
+aws ec2 attach-volume \
+--volume-id vol-0abc123def456... \
+--instance-id i-0123abcdef4567gh \
+--device /dev/xvdf
+```
+
+Ab tum volume ko apne EC2 se connect kar rahe ho — jaise external hard drive ko laptop se USB se lagate ho.
+Bas `volume-id` aur `instance-id` apne wale lagana na bhoolna.
+
+---
+
+### 🔹 **Step 4: Attached Volume Check Karna**
+
+```bash
+lsblk
+```
+
+Ye command system mein attached sab drives list karti hai.
+Agar `/dev/xvdf` dikh gaya to matlab volume successfully attach ho gaya.
+
+---
+
+### 🔹 **Step 5: EBS Volume Format Karna (EXT4 File System)**
+
+```bash
+sudo mkfs -t ext4 /dev/xvdf
+```
+
+Ye step volume ko pehli baar use karne ke liye format karta hai.
+EXT4 ek Linux-compatible file system hai jise commonly use kiya jata hai.
+
+---
+
+### 🔹 **Step 6: Folder Banana aur Volume Mount Karna**
+
+```bash
+sudo mkdir /data
+sudo mount /dev/xvdf /data
+```
+
+Ab tumne ek `/data` folder banaya jahan ye volume attach kar diya gaya hai.
+Is folder mein ab jo bhi file store karoge, wo EBS volume pe save hogi.
+
+---
+
+### 🔹 **Step 7 (Optional): Mount Permanent Banana**
+
+1. Pehle UUID lo:
+
+   ```bash
+   sudo blkid /dev/xvdf
+   ```
+2. Ab `fstab` file edit karo:
+
+   ```bash
+   sudo nano /etc/fstab
+   ```
+3. Ye line add karo:
+
+   ```ini
+   UUID=<your-uuid> /data ext4 defaults,nofail 0 2
+   ```
+
+Yeh step ensure karta hai ke agar EC2 reboot ho jaye to volume auto-mount ho jaye.
+
+---
+
+### 🧪 **Assignment – Snapshot Create Karna (Backup)**
+
+```bash
+aws ec2 create-snapshot \
+--volume-id vol-0abc123def456... \
+--description "CLI Snapshot Backup"
+```
+
+Snapshot basically **backup image** hoti hai volume ki.
+Agar future mein data corrupt ho jaye to isi snapshot se naya volume bana ke restore kar sakte ho.
+
+---
+
+### 🔄 **(Optional) Snapshot se Restore Karna**
+
+```bash
+aws ec2 create-volume \
+--availability-zone us-east-1a \
+--snapshot-id snap-0abc123xyz... \
+--volume-type gp2
+```
+
+Phir is naye volume ko wapas EC2 pe attach karke mount kar lo (Step 3–6 jese).
+Yeh method **disaster recovery** ke liye best hota hai.
+

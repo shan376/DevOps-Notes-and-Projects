@@ -1,0 +1,151 @@
+# Logging Basics – Loki + Grafana Stack on Kubernetes (K3s)
+
+📘 Conceptual Explanation:
+Kubernetes cluster mein har pod apne logs generate karta hai, lekin ye logs scattered hote hain across nodes. Centralized Logging ka matlab hai ke sab logs ek jagah collect ho jayein taake debugging, monitoring aur alerting easy ho.  
+
+Loki ek log aggregation system hai, Prometheus ki tarah lekin logs ke liye. Ye sirf metadata (jaise pod name, namespace) index karta hai. Grafana ko efficiently visualize karne ke liye design hua hai.  
+
+Grafana ek visualization tool hai jo Loki ke logs ko display karta hai. Aap search, filter aur analyze kar sakte hain across pods, namespaces aur services.
+
+🧠 Roman Urdu Explanation:
+Kubernetes cluster mein har pod apne logs generate karta hai. Agar app crash ho jaye to logs dhoondhna mushkil hota hai.  
+Loki ye sab logs collect karta hai aur Grafana un logs ko visual form mein dikhata hai.  
+Loki + Grafana ka combo centralized logging ke liye best hai, easy debugging aur monitoring ke liye.
+
+---
+
+🧩 Practical Work: Install Loki Stack using Helm
+
+✅ Pre-Requisites:
+
+1. Launch EC2 (Ubuntu)
+- Instance Type: t3.medium
+- Security Group: SSH (22), HTTP (80), HTTPS (443), optional NodePort 3000–32767
+
+2. Update Ubuntu & Install Prerequisites
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl wget git vim -y
+````
+
+3. Install Docker
+
+```bash
+curl -fsSL https://get.docker.com | sudo bash
+sudo usermod -aG docker $USER
+newgrp docker
+docker --version
+```
+
+4. Install K3s (Lightweight Kubernetes)
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo kubectl get nodes
+echo "alias kubectl='k3s kubectl'" >> ~/.bashrc
+source ~/.bashrc
+```
+
+5. Fix kubectl (optional)
+
+```bash
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $USER:$USER ~/.kube/config
+kubectl get nodes
+```
+
+6. Install Helm
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+7. Create Monitoring Namespace
+
+```bash
+kubectl create namespace monitoring
+kubectl get ns
+```
+
+✅ Checkpoint:
+
+* EC2 Instance ✅
+* Docker Installed ✅
+* K3s Installed ✅
+* Helm Installed ✅
+* kubectl Working ✅
+* Monitoring Namespace ✅
+
+---
+
+📥 Step 1: Add Grafana Helm Repo
+
+```bash
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+🏗 Step 2: Install Loki Stack
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+helm ls -A
+helm install loki grafana/loki-stack --namespace monitoring
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Ye install karta hai:
+
+* Loki for log aggregation
+* Promtail (log collector DaemonSet)
+* Grafana dashboards (optional)
+
+🔍 Step 3: Verify Installation
+
+```bash
+kubectl get all -n monitoring
+```
+
+Check pods: loki-0, promtail-xxxxx, grafana-xxxxxx
+
+🌐 Step 4: Access Grafana UI
+
+```bash
+kubectl get svc -n monitoring loki-grafana
+kubectl patch svc loki-grafana -n monitoring -p '{"spec": {"type":"NodePort"}}' # if needed
+kubectl get svc -n monitoring loki-grafana
+```
+
+Browser: http://<EC2-Public-IP>:<NodePort>
+Login: admin / admin123
+
+⚙️ Step 5: Configure Loki in Grafana
+
+1. Grafana UI → ⚙️ Settings → Data Sources → Add → Loki
+2. URL: [http://loki.monitoring.svc.cluster.local:3100](http://loki.monitoring.svc.cluster.local:3100) → Save & Test
+
+📊 Step 6: Import Loki Dashboard
+
+1. Grafana → + → Import
+2. Dashboard ID: 13407
+3. Data Source: Loki → Import
+
+🔍 Step 7: View Logs
+
+* Grafana Explore → Source: Loki
+* Queries: {app="nginx"}, {namespace="default"}
+* Filter by pod, labels, container
+
+📌 Final Notes:
+
+* Loki installed via Helm ✅
+* Promtail running ✅
+* Loki added in Grafana ✅
+* Dashboard imported ✅
+* Logs visualized ✅
+
+🧠 Roman Urdu Summary:
+Humne Loki install kiya taake pods ke logs Promtail se collect ho kar Grafana mein visualize hon. Ab easily dekh sakte hain kaunse pod ne kya log produce kiya aur errors quickly identify ho jate hain.
+

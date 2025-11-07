@@ -1,0 +1,89 @@
+# ⚙️ Practical Work + Assignment – ConfigMaps & Secrets
+
+---
+
+### 🧪 **Step 1: ConfigMap Banana**
+
+```bash
+kubectl create configmap app-config --from-literal=APP_MODE=production
+```
+
+🧾 Is command se humne ek **ConfigMap** banayi jisme `APP_MODE=production` store hua.
+Ye non-sensitive configuration data hota hai jise hum environment variable ke liye use karte hain.
+
+---
+
+### 🔐 **Step 2: Secret Banana**
+
+```bash
+kubectl create secret generic db-secret --from-literal=DB_PASSWORD=Pass123
+```
+
+🧾 Yeh command ek **Secret** banati hai jisme sensitive data securely store hota hai — yahan humne `DB_PASSWORD=Pass123` store kiya.
+Secrets hamesha encrypted form mein save hotay hain taake security maintain rahe.
+
+---
+
+### 🧩 **Assignment: ConfigMap aur Secret ko Pod Mein Attach Karna**
+
+```yaml
+env:
+- name: APP_MODE
+  valueFrom:
+    configMapKeyRef:
+      name: app-config
+      key: APP_MODE
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: db-secret
+      key: DB_PASSWORD
+```
+
+🧾 Is YAML code mein humne ConfigMap aur Secret dono ko **Pod** ke environment variables ke through attach kiya hai.
+Jab pod start hota hai, to ye values automatically container ke andar chali jati hain.
+
+---
+
+### 🧪 **Verification**
+
+Pod ke environment variables check karne ke liye aap container ke andar jaa kar verify kar sakte hain:
+
+```bash
+kubectl exec -it <pod-name> -- env
+```
+
+🧾 Output mein aapko `APP_MODE=production` aur `DB_PASSWORD=Pass123` nazar aayenge.
+
+---
+
+### 🎯 **Final Output**
+
+* ✅ `APP_MODE=production` — ConfigMap se aaya
+* ✅ `DB_PASSWORD=Pass123` — Secret se securely aaya
+  Yani pod ko dono values mil gayi bina unhe directly code mein likhe hue.
+
+---
+
+### 📦 **Real-Life Example (E-Commerce App)**
+
+Sochiye aap ek **E-commerce app** deploy kar rahe hain jisme:
+
+* Frontend: React
+* Backend: Node.js
+* Database: MySQL
+
+Backend ko chahiye:
+
+* Non-sensitive config (`APP_MODE`, `LOG_LEVEL`) → **ConfigMap**
+* Sensitive info (`DB_PASSWORD`, `API_KEY`) → **Secret**
+
+Iss tarah se app secure aur easy to manage ban jati hai.
+
+---
+
+### ✅ **Result**
+
+* ConfigMap aur Secret dono successfully create aur attach hue.
+* Pod securely environment variables se data le raha hai.
+* Application ab secure aur configurable hai bina code modify kiye.

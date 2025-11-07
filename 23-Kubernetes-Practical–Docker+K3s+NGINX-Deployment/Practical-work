@@ -1,0 +1,185 @@
+**🧪 Practical Work: Docker + K3s + NGINX Deployment (Roman Urdu)**
+
+---
+
+### 🔧 Step 1: Docker Installation
+
+**Command:**
+
+```bash
+sudo apt update
+```
+
+**Roman Urdu:** System update karo taake latest packages install ho sakein.
+
+```bash
+sudo apt install -y docker.io
+```
+
+**Roman Urdu:** Docker install karo, ye container engine hai jo Kubernetes ka base banega.
+
+```bash
+sudo systemctl enable docker --now
+```
+
+**Roman Urdu:** Docker ko enable aur start karo taake system boot pe automatically chalu ho.
+
+```bash
+docker --version
+```
+
+**Roman Urdu:** Check karo ke docker sahi install hua hai ya nahi.
+
+---
+
+### 🚀 Step 2: Install K3s (Lightweight Kubernetes)
+
+**Command:**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+```
+
+**Roman Urdu:** Ye command K3s install karti hai — lightweight Kubernetes distribution.
+
+```bash
+sudo systemctl status k3s
+```
+
+**Roman Urdu:** Dekho ke K3s service active aur running hai ya nahi.
+
+```bash
+sudo k3s kubectl get nodes
+```
+
+**Roman Urdu:** Verify karo ke node “Ready” state mein hai — matlab cluster sahi chal raha hai.
+
+---
+
+### ⚙️ Step 3 (Optional): Add SWAP Memory
+
+**Command:**
+
+```bash
+sudo fallocate -l 1G /swapfile
+```
+
+**Roman Urdu:** 1GB ka swap file allocate karo (extra memory ke liye).
+
+```bash
+sudo chmod 600 /swapfile
+```
+
+**Roman Urdu:** File permissions set karo taake secure rahe.
+
+```bash
+sudo mkswap /swapfile
+```
+
+**Roman Urdu:** Swap file ko swap area mein convert karo.
+
+```bash
+sudo swapon /swapfile
+```
+
+**Roman Urdu:** Swap ko activate karo.
+
+```bash
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+**Roman Urdu:** Permanent swap enable karne ke liye system config mein entry add karo.
+
+```bash
+swapon --show
+```
+
+**Roman Urdu:** Dekho swap file active hai ya nahi.
+
+```bash
+free -h
+```
+
+**Roman Urdu:** RAM aur swap usage check karo.
+
+---
+
+### 🌐 Step 4: Deploy NGINX on K3s
+
+**Command:**
+
+```bash
+sudo k3s kubectl create deployment nginx --image=nginx
+```
+
+**Roman Urdu:** Official nginx image se ek deployment banao.
+
+```bash
+sudo k3s kubectl expose deployment nginx --port=80 --type=NodePort
+```
+
+**Roman Urdu:** Nginx ko NodePort service ke zariye expose karo taake browser se access ho sake.
+
+```bash
+sudo k3s kubectl get svc nginx
+```
+
+**Roman Urdu:** Service ka NodePort check karo jo external access ke liye use hoga.
+
+---
+
+### ☁️ Step 5: AWS EC2 Inbound Rule Set Karna
+
+**Roman Urdu Explanation:**
+EC2 Console mein jao → Security Groups → Inbound Rules → Edit → Add Rule:
+
+* **Type:** Custom TCP
+* **Port Range:** 30000–32767 ✅
+* **Source:** Anywhere (0.0.0.0/0)
+
+**Roman Urdu:**
+Ye port range allow karna zaroori hai kyunki Kubernetes NodePort is range se random port assign karta hai. Sirf ek port allow karne se error aata hai.
+
+---
+
+### ✅ Final Step: Access NGINX
+
+**Roman Urdu:**
+Browser mein likho:
+
+```
+http://<EC2-PUBLIC-IP>:<NodePort>
+```
+
+Example:
+
+```
+http://3.149.6.157:30568
+```
+
+Agar page pe **“Welcome to nginx!”** likha aaye to lab successful hai 🎉
+
+---
+
+### ❌ Common Error & Fix
+
+**Error:**
+`ERR_CONNECTION_TIMED_OUT`
+
+**Wajah:**
+EC2 Security Group mein sirf ek port (e.g., 32676) allow kiya gaya tha.
+
+**Solution:**
+Puri range (30000–32767) allow karo taake NodePort ka koi bhi assigned port access ho sake.
+
+---
+
+### 📅 Lab Summary
+
+1️⃣ Docker install kiya – container engine setup hua.
+2️⃣ K3s install kiya – lightweight Kubernetes cluster ready.
+3️⃣ SWAP memory add ki – low RAM pe stability ke liye.
+4️⃣ NGINX deploy kiya – web server cluster mein run hua.
+5️⃣ NodePort service expose ki – external access enable hua.
+6️⃣ AWS inbound rules open ki – access error fix hua.
+7️⃣ Browser se test kiya – NGINX page open, lab complete ✅

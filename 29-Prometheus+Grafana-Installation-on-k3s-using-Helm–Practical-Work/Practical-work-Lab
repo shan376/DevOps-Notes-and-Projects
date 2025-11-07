@@ -1,0 +1,174 @@
+# Prometheus + Grafana on K3s Lab
+
+## 🔧 Practical Work Step-by-Step
+
+---
+
+### **1️⃣ Launch EC2 Instance**
+
+* OS: Ubuntu 22.04/24.04 LTS
+* Instance: t3.small minimum, t3.medium recommended
+* Extra 20GB EBS attach karen
+  **Purpose:** Monitoring tools ke liye enough storage chahiye.
+
+---
+
+### **2️⃣ Format & Mount Extra Volume**
+
+```bash
+sudo lsblk                # Check new volume
+sudo mkfs -t ext4 /dev/xvdf
+sudo mkdir /mnt/data
+sudo mount /dev/xvdf /mnt/data
+echo '/dev/xvdf /mnt/data ext4 defaults,nofail 0 0' | sudo tee -a /etc/fstab
+```
+
+*Roman Urdu:* Nai volume ko format aur mount kia gaya Prometheus/Grafana ke liye.
+
+---
+
+### **3️⃣ Security Group Setup**
+
+* Allow Ports: 22, 80, 443, 6443, 8080, 30000–32767 (NodePort)
+  *Roman Urdu:* Ye ports Kubernetes aur monitoring tools ke liye zaroori hain.
+
+---
+
+### **4️⃣ Initial EC2 Setup via SSH**
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget vim git unzip net-tools gnupg lsb-release software-properties-common apt-transport-https ca-certificates
+sudo hostnamectl set-hostname devops-lab-instance
+```
+
+*Roman Urdu:* EC2 update hui aur basic tools install kiye.
+
+---
+
+### **5️⃣ Install Docker**
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+```
+
+*Roman Urdu:* Docker install hui aur user ko docker group mein add kia.
+
+---
+
+### **6️⃣ Install K3s (Lightweight Kubernetes)**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo k3s kubectl get nodes
+```
+
+*Roman Urdu:* K3s install hui aur node verify kia.
+
+---
+
+### **7️⃣ Optional Tools**
+
+* Install kubectl: `sudo snap install kubectl --classic`
+* Install Helm:
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+---
+
+### **8️⃣ Create Lab Folder Structure**
+
+```bash
+mkdir -p ~/devops-labs/{docker,kubernetes,jenkins,ansible}
+cd ~/devops-labs
+```
+
+*Roman Urdu:* Labs ke liye organized folders banaye.
+
+---
+
+### **9️⃣ Add Helm Repositories**
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+*Roman Urdu:* Helm charts repositories add ki.
+
+---
+
+### **🔟 Create Monitoring Namespace**
+
+```bash
+kubectl create namespace monitoring
+```
+
+*Roman Urdu:* Monitoring ke liye separate namespace banaya.
+
+---
+
+### **1️⃣1️⃣ Set KUBECONFIG**
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+kubectl get nodes
+```
+
+*Roman Urdu:* Kubectl ko cluster config location batai aur test kia.
+
+---
+
+### **1️⃣2️⃣ Install Prometheus**
+
+```bash
+helm install prometheus prometheus-community/prometheus --namespace monitoring
+kubectl patch svc prometheus-server -n monitoring -p '{"spec": {"type": "NodePort"}}'
+kubectl get svc -n monitoring prometheus-server
+```
+
+*Roman Urdu:* Prometheus deploy hui aur service NodePort ke sath browser access ke liye ready hui.
+
+---
+
+### **1️⃣3️⃣ Install Grafana**
+
+```bash
+helm install grafana grafana/grafana --namespace monitoring --set adminPassword='admin123' --set service.type=NodePort
+kubectl get svc -n monitoring grafana
+```
+
+*Roman Urdu:* Grafana deploy hui aur NodePort assign hui.
+
+---
+
+### **1️⃣4️⃣ Configure Grafana**
+
+1. Login: `http://<EC2-Public-IP>:<NodePort>`
+
+   * Username: `admin`
+   * Password: `admin123`
+2. Add Prometheus Data Source:
+
+   * URL: `http://prometheus-server.monitoring.svc.cluster.local`
+3. Import Dashboard ID: 1860
+
+*Roman Urdu:* Grafana ke andar Prometheus add kiya aur ready dashboard import kia.
+
+---
+
+### **✅ Summary**
+
+* EC2 Launch & Storage ✅
+* Docker & K3s Installed ✅
+* Helm Installed ✅
+* Prometheus & Grafana Deploy ✅
+* Grafana Dashboard Configured ✅
+

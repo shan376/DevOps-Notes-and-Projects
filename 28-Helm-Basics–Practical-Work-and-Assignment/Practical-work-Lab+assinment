@@ -1,0 +1,129 @@
+# 🧩 Helm Basics – Practical Work & Assignment
+
+## ✅ Practical Work
+
+**Step 1: Install k3s (Kubernetes) on EC2**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+```
+
+*Roman Urdu:* Ye command lightweight k3s cluster install karti hai. Single node dev cluster ready ho jata hai.
+
+**Step 2: Set KUBECONFIG for kubectl**
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+```
+
+*Roman Urdu:* Kubectl ko batata hai ke cluster ka config file kahan se load karna hai.
+
+**Step 3: Verify Node Status**
+
+```bash
+kubectl get nodes
+```
+
+*Roman Urdu:* Cluster mein node ready hai ya nahi, status check karo.
+
+---
+
+**Step 4: Install Helm**
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+*Roman Urdu:* Helm install karo aur verify karo ke sahi install hua.
+
+**Step 5: Create First Chart**
+
+```bash
+helm create mychart
+```
+
+*Roman Urdu:* Ye command chart folder banata hai jisme `templates/`, `values.yaml`, aur `Chart.yaml` hoti hai.
+
+**Folder Structure:**
+
+```
+mychart/
+├── Chart.yaml
+├── values.yaml
+├── templates/
+│   ├── deployment.yaml
+│   ├── service.yaml
+```
+
+**Step 6: Deploy App Using Helm**
+
+```bash
+helm install myapp ./mychart
+kubectl get all
+helm list
+```
+
+*Roman Urdu:* Chart ke base par app deploy hoti hai. Resources aur Helm release verify karo.
+
+---
+
+## 📚 Assignment: Deploy App Using Helm Chart
+
+**Step 1: Modify values.yaml**
+
+```bash
+nano mychart/values.yaml
+```
+
+Update file:
+
+```yaml
+image:
+  repository: nginx
+  tag: latest
+service:
+  type: NodePort
+  port: 80
+```
+
+*Roman Urdu:*
+
+* `repository: nginx` → DockerHub se nginx image use hogi
+* `tag: latest` → Latest version pull hoga
+* `type: NodePort` → Service externally expose hogi
+* `port: 80` → App ka internal port
+
+Save & exit: Ctrl + O → Enter → Ctrl + X
+
+**Step 2: Reinstall Helm Chart**
+
+```bash
+helm uninstall myapp
+helm install myapp ./mychart
+kubectl get svc
+```
+
+*Roman Urdu:* Pehle existing deployment remove karo, phir updated chart deploy karo aur service verify karo.
+
+**Step 3: Access App in Browser**
+
+```bash
+curl http://checkip.amazonaws.com
+```
+
+Browser URL: `http://<EC2_PUBLIC_IP>:<NodePort>`
+*Roman Urdu:* EC2 ka public IP aur NodePort use karke browser mein open karo. Nginx welcome page dikhega.
+
+**Important:** Agar browser se access nahi ho raha, to EC2 security group mein NodePort range 30000–32667 allow honi chahiye.
+
+---
+
+## ✅ Summary
+
+| Step                  | Task | Status |
+| --------------------- | ---- | ------ |
+| Helm Installed        | ✅    |        |
+| Chart Created         | ✅    |        |
+| App Deployed via Helm | ✅    |        |
+| Assignment Completed  | ✅    |        |

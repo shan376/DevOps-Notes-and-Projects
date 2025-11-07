@@ -1,0 +1,234 @@
+## 📘 ** VPC Basics using AWS CLI**
+
+**(DevOps Real Practical)**
+
+---
+
+### 🔷 **Conceptual Understanding (With Roman Urdu Explanation)**
+
+**VPC (Virtual Private Cloud)** ek isolated network environment hoti hai AWS ke andar jahan aap apne cloud resources (jaise EC2, RDS, etc.) securely run karte ho.
+
+🧠 **Roman Urdu:**
+VPC ka matlab hai apna ek private network jo AWS ke andar banate ho, jahan apna poora control hota hai — IPs, subnets, routing, firewalls sab kuch. Ye ek data center jaisa hota hai jo cloud ke andar banta hai.
+
+---
+
+### 🔧 **Objective:**
+
+Create a Custom VPC Using AWS CLI with Full Networking Setup
+
+🔽 Aap ye sab CLI se create karenge:
+• VPC
+• Public Subnet
+• Private Subnet
+• Internet Gateway (IGW)
+• Route Table for Public Subnet
+• EC2 Instance in Public Subnet (Optional)
+
+---
+
+### 💼 **Real Scenario:**
+
+Aap ek DevOps Engineer hain jise production environment ke liye AWS par secure, isolated, scalable infrastructure banana hai. Ismein:
+• EC2 instance publicly reachable ho (jaise Web Server)
+• Internal servers ho (jaise Database) — jo internet se hidden ho
+• Networking, Routing, and Security full control mein ho
+
+Aap ye sab CLI se karenge automation ya scripting ke through.
+
+---
+
+### 🚀 **VPC CLI Practical Lab (Complete from Scratch)**
+
+**With AWS CLI Install & Configuration (Ubuntu Version)**
+
+#### 🔰 Step 0: AWS CLI Install + Configure (Only First Time)
+
+**Step 0.1: Install AWS CLI (Ubuntu/Debian)**
+
+```bash
+sudo apt update -y
+sudo apt install -y unzip curl
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+📌 Roman:
+"CLI ka setup kar rahe hain jisse hum terminal se AWS commands chala sakein."
+
+**Step 0.2: Verify AWS CLI Installed**
+
+```bash
+aws --version
+```
+
+📌 Roman:
+"Check kar rahe hain ke CLI sahi install ho gaya."
+
+**Step 0.3: Configure AWS CLI**
+
+```bash
+aws configure
+```
+
+Yahan ye 4 cheezen poochhega:
+
+1. AWS Access Key ID
+2. AWS Secret Access Key
+3. Default region name (e.g. us-east-1)
+4. Default output format (json)
+
+📌 Roman:
+"Yeh command CLI ko AWS account se link karne ke liye hai."
+
+---
+
+### ✅ **Optional: IAM User + Access Key Create (Agar nahi banaya)**
+
+1. AWS Console → IAM → Users → Add User
+2. Name: cli-user → Programmatic Access ✅
+3. Permissions: AdministratorAccess
+4. Create User → Access Key ID & Secret Key save kar lo
+
+📌 Roman:
+"Yeh credentials CLI mein aws configure mein lagte hain."
+
+---
+
+## 🧩 **VPC CLI Practical Lab — Commands (With Roman Urdu Explanation)**
+
+### Step 1: Create VPC
+
+```bash
+aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=MyVPC}]'
+```
+
+📌 Roman:
+"Yeh apne liye ek nayi building (VPC) bana raha hai jisme hum apni networking karenge."
+
+---
+
+### Step 2: Get VPC ID (Agar miss kar diya ho)
+
+```bash
+aws ec2 describe-vpcs --filters "Name=tag:Name,Values=MyVPC" --query "Vpcs[0].VpcId" --output text
+```
+
+📌 Roman:
+"Agar pehle se VPC ban chuki hai to iska ID nikalne ke liye ye command."
+
+---
+
+### Step 3: Create Public Subnet
+
+```bash
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.1.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PublicSubnet}]'
+```
+
+📌 Roman:
+"Yeh ek aisi room banai jisme public servers (web servers) rahenge."
+
+---
+
+### Step 4: Create Private Subnet
+
+```bash
+aws ec2 create-subnet --vpc-id vpc-xxxxxxxx --cidr-block 10.0.2.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PrivateSubnet}]'
+```
+
+📌 Roman:
+"Yeh room sirf andar ke servers (database) ke liye hai."
+
+---
+
+### Step 5: Create Internet Gateway (IGW)
+
+```bash
+aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=MyIGW}]'
+```
+
+📌 Roman:
+"Ye building ka internet connection point hai."
+
+---
+
+### Step 6: Attach IGW to VPC
+
+```bash
+aws ec2 attach-internet-gateway --internet-gateway-id igw-xxxxxxxx --vpc-id vpc-xxxxxxxx
+```
+
+📌 Roman:
+"Ab VPC ko internet se connect kar diya."
+
+---
+
+### Step 7: Create Route Table
+
+```bash
+aws ec2 create-route-table --vpc-id vpc-xxxxxxxx --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PublicRouteTable}]'
+```
+
+---
+
+### Step 8: Create Route to IGW
+
+```bash
+aws ec2 create-route --route-table-id rtb-xxxxxxxx --destination-cidr-block 0.0.0.0/0 --gateway-id igw-xxxxxxxx
+```
+
+📌 Roman:
+"Internet traffic IGW ke raaaste bhejna."
+
+---
+
+### Step 9: Associate Public Subnet with Route Table
+
+```bash
+aws ec2 associate-route-table --subnet-id subnet-xxxxxxxx --route-table-id rtb-xxxxxxxx
+```
+
+📌 Roman:
+"Public subnet ko route table se joda taake wo internet map follow kare."
+
+---
+
+### Step 10: Enable Auto-Assign Public IP
+
+```bash
+aws ec2 modify-subnet-attribute --subnet-id subnet-xxxxxxxx --map-public-ip-on-launch
+```
+
+📌 Roman:
+"Har naya EC2 jo public subnet mein launch hoga, usko automatic public IP milegi."
+
+---
+
+### Step 11: Launch EC2 Instance in Public Subnet
+
+```bash
+aws ec2 run-instances --image-id ami-xxxxxxxx --count 1 --instance-type t2.micro --key-name MyKeyPair --subnet-id subnet-xxxxxxxx --associate-public-ip-address --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=MyPublicEC2}]'
+```
+
+📌 Roman:
+"Ab hum apni building mein ek employee (web server) bitha rahe hain jo internet se connect ho sake."
+
+---
+
+## 🧾 **VPC CLI Lab Summary (Roman Urdu Mein)**
+
+1. Nayi VPC banayi – ek naya network setup ready kiya.
+2. Public aur Private subnets banaye – alag zones ke liye.
+3. Internet Gateway banaya aur VPC se attach kiya.
+4. Route Table create ki aur IGW se connect kiya.
+5. Public Subnet ko Route Table se joda.
+6. Public IP auto-assign enable kiya.
+7. EC2 instance launch kiya public subnet mein.
+
+---
+
+### 🌍 **Real-World Example:**
+
+Jaise aap ek nayi building bana rahe ho (VPC), usme do kamre (subnets) banaye — ek ko wifi (internet gateway) diya, map (route table) set kiya ke kaunsa kamra kahan se connected hai, aur phir ek aadmi (EC2) ko us building mein kaam ke liye rakha.
+

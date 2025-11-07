@@ -1,0 +1,155 @@
+**📘 Kubernetes Services & YAML Configuration**
+
+---
+
+### 🔹 Conceptual Explanation
+
+**Service:**
+Service ek fixed IP aur DNS name provide karti hai taake pod reliably accessible rahe — chahe pod restart ho jaye.
+
+**YAML (Yet Another Markup Language):**
+Kubernetes resources ko define karne ke liye YAML configuration use hoti hai — ye human-friendly aur declarative language hoti hai.
+
+---
+
+### 🧠 Roman Urdu Explanation
+
+Service pod ko ek permanent IP aur port deti hai — matlab agar pod dobara create ho to bhi uska IP change hone par service same rehti hai.
+YAML file mein hum configuration likhtay hain jaise pod ka naam, image, port, labels, waghera.
+
+---
+
+### 🔁 Real-Life Example
+
+Agar pod crash ho jaye to wo naya IP le sakta hai.
+Lekin agar aap ek **Service** bana lein to wo ek permanent IP se connected rehti hai — jisse application ka access stable rehta hai aur downtime nahi hota.
+
+---
+
+### ⚙️ Prerequisites (Before Practical)
+
+✅ Kubernetes cluster running ho (Minikube, Kind, ya cloud-based).
+✅ `kubectl` command-line tool configured ho.
+✅ Aap YAML files wali working directory mein ho.
+
+---
+
+## 🧪 Practical Work: Write YAML for Pod
+
+### Step 1: YAML File Banana
+
+Command:
+
+```bash
+nano pod.yaml
+```
+
+**Code (pod.yaml):**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  labels:
+    app: demo
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx
+```
+
+🧾 *Roman Urdu:* Is file mein ek pod define kiya gaya hai jisme nginx container run karega.
+
+---
+
+### Step 2: YAML Apply Karna
+
+Command:
+
+```bash
+kubectl apply -f pod.yaml
+```
+
+🧾 *Roman Urdu:* Ye command YAML file apply karti hai aur pod create ho jata hai.
+
+---
+
+## 📚 Assignment: Create Service via YAML
+
+### Step 1: YAML File Banana
+
+Command:
+
+```bash
+nano service.yaml
+```
+
+**Code (service.yaml):**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+spec:
+  selector:
+    app: demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: NodePort
+```
+
+🧾 *Roman Urdu:* Is YAML file se ek NodePort service create hoti hai jo pod ko internet se access karne deti hai.
+
+---
+
+### Step 2: YAML Apply Karna
+
+Command:
+
+```bash
+kubectl apply -f service.yaml
+```
+
+🧾 *Roman Urdu:* Ye command YAML file apply karti hai aur service create ho jati hai.
+
+---
+
+## 🧪 Lab Task: Verify Service
+
+Command:
+
+```bash
+kubectl get svc
+```
+
+🧾 *Roman Urdu:* Ye command aapko active services ki list dikhati hai, jisme NodePort number bhi hota hai — jisse aap apni app web browser se access kar saktay hain.
+
+---
+
+## 🌐 Browser Se Access Karna
+
+Agar aap **EC2** use kar rahe hain to:
+
+```bash
+http://<your-ec2-public-ip>:<NodePort>
+```
+
+**Example:**
+
+```bash
+http://54.173.50.100:30007
+```
+
+⚠️ *Note:* Ensure karein ke aapke firewall ya Security Group mein NodePort range (30000–32767) allow ho.
+
+---
+
+## ✅ Result
+
+* Pod successfully create hua.
+* NodePort service ban gayi jo pod ko externally accessible banati hai.
+* Browser se Nginx ka welcome page successfully access ho gaya.

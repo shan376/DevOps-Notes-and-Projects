@@ -1,0 +1,66 @@
+✅ **Practical Work: Pods and Deployment in Kubernetes**
+
+**🧪 Step 1: Create Deployment**
+
+```bash
+kubectl create deployment webapp --image=nginx
+```
+
+🧾 *Roman Urdu:* Ye command ek **deployment** banati hai jisme **nginx** container chalta hai. Deployment automatically ek pod create karta hai jisme app run hoti hai.
+
+---
+
+**🧪 Step 2: Expose Deployment**
+
+```bash
+kubectl expose deployment webapp --type=NodePort --port=80
+```
+
+🧾 *Roman Urdu:* Ye command deployment ko **NodePort** service ke zariye expose karti hai taake hum **browser** se directly access kar saken. Ye service cluster ke har node pe ek port open karti hai.
+
+---
+
+**🧪 Step 3: Check Service**
+
+```bash
+kubectl get svc
+```
+
+🧾 *Roman Urdu:* Is command se hum check karte hain ke service kaunsa **NodePort** use kar rahi hai. Ye port number browser me likh kar hum nginx app open kar saktay hain.
+
+---
+
+**📚 Assignment – Scale and Update App**
+
+**🔁 Step 4: Scale the Deployment**
+
+```bash
+kubectl scale deployment webapp --replicas=3
+```
+
+🧾 *Roman Urdu:* Ye command **scaling up** ke liye use hoti hai. Is se **3 identical pods** create ho jate hain taake zyada traffic handle ho sake.
+
+---
+
+**🔁 Step 5: Update Image Version**
+
+```bash
+kubectl set image deployment/webapp nginx=nginx:1.19
+```
+
+🧾 *Roman Urdu:* Ye command deployment me **nginx image ka version** update karne ke liye use hoti hai. Isse naye pods naye version ke sath redeploy ho jate hain.
+
+---
+
+**🧪 Step 6: Check Deployment Rollout Status**
+
+```bash
+kubectl rollout status deployment/webapp
+```
+
+🧾 *Roman Urdu:* Ye command batati hai ke **deployment update** successfully complete hua ya nahi. Agar “successfully rolled out” message aaye to update done hai.
+
+---
+
+✅ **Result:**
+Is practical me humne seekha kaise ek **nginx deployment** create karna hai, usay expose karna, scale karna, update karna aur rollout status check karna hai — sab kuch CLI commands ke through Roman Urdu explanation ke sath.

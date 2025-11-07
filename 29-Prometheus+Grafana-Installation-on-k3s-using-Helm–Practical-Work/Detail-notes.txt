@@ -1,0 +1,166 @@
+# Prometheus + Grafana on K3s Lab
+
+## 🧠 Conceptual Overview
+
+**Prometheus:**
+
+* Metrics collector jo automatically CPU, memory, disk I/O, pod health aur HTTP requests track karta hai.
+* Time-series database mein data store hota hai.
+* Active monitoring system hai (khud data pull karta hai).
+
+**Grafana:**
+
+* Open-source dashboard tool jo Prometheus se data read karke beautiful graphs, tables aur gauges banata hai.
+* Real-time dashboards aur alerts configure kar sakte hain.
+
+**Scenario (Roman Urdu):**
+E-commerce website mein multiple microservices hain. Agar website slow ho ya checkout fail ho, Prometheus data collect karega aur Grafana se visualize kar ke alert milega. Is tarah problem jaldi diagnose aur fix ho jati hai.
+
+---
+
+## 🔧 EC2 Instance Setup & Configuration
+
+1. **Launch EC2:**
+
+* Ubuntu 22.04/24.04 LTS
+* t3.small minimum, t3.medium recommended
+* Extra 20GB EBS attach karen
+
+2. **Format & Mount Volume:**
+
+```bash
+sudo lsblk
+sudo mkfs -t ext4 /dev/xvdf
+sudo mkdir /mnt/data
+sudo mount /dev/xvdf /mnt/data
+echo '/dev/xvdf /mnt/data ext4 defaults,nofail 0 0' | sudo tee -a /etc/fstab
+```
+
+*Roman Urdu:* Nai volume format hui aur mount ho gayi Prometheus/Grafana ke liye.
+
+3. **Security Group Rules:**
+
+* 22 TCP, 80 TCP, 443 TCP, 6443 TCP, 8080 TCP
+* 30000–32767 TCP for Kubernetes NodePort
+
+4. **Initial Setup via SSH:**
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget vim git unzip net-tools gnupg lsb-release software-properties-common apt-transport-https ca-certificates
+sudo hostnamectl set-hostname devops-lab-instance
+```
+
+5. **Install Docker:**
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+```
+
+*Logout & re-login to activate docker group.*
+
+6. **Install K3s (Lightweight Kubernetes):**
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+sudo k3s kubectl get nodes
+```
+
+7. **Optional Tools:**
+
+* `kubectl` via snap
+* `Helm` via official script
+
+8. **Lab Folder Structure:**
+
+```bash
+mkdir -p ~/devops-labs/{docker,kubernetes,jenkins,ansible}
+cd ~/devops-labs
+```
+
+---
+
+## ⚡ Prometheus & Grafana Setup Using Helm
+
+**Prerequisites:** EC2, Docker, K3s, Helm, kubectl ready ✅
+
+1. **Add Helm Repositories:**
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+2. **Create Monitoring Namespace:**
+
+```bash
+kubectl create namespace monitoring
+```
+
+3. **Set KUBECONFIG:**
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+source ~/.bashrc
+```
+
+4. **Test kubectl:**
+
+```bash
+kubectl get nodes
+```
+
+*Output should show instance Ready.*
+
+---
+
+### ✅ Install Prometheus
+
+```bash
+helm install prometheus prometheus-community/prometheus --namespace monitoring
+kubectl patch svc prometheus-server -n monitoring -p '{"spec": {"type": "NodePort"}}'
+kubectl get svc -n monitoring prometheus-server
+```
+
+* **Access:** `http://<EC2-Public-IP>:<NodePort>`
+
+---
+
+### ✅ Install Grafana
+
+```bash
+helm install grafana grafana/grafana --namespace monitoring --set adminPassword='admin123' --set service.type=NodePort
+kubectl get svc -n monitoring grafana
+```
+
+* **Access:** `http://<EC2-Public-IP>:<NodePort>`
+* **Login:** `admin/admin123`
+
+---
+
+### 🔧 Configure Grafana
+
+1. Add Prometheus Data Source:
+
+* URL: `http://prometheus-server.monitoring.svc.cluster.local`
+* Save & Test
+
+2. Import Dashboard:
+
+* * > Import > Dashboard ID: 1860 > Select Prometheus > Done ✅
+
+---
+
+## ✅ Lab Summary
+
+* EC2 Launch & Storage ✅
+* Docker & K3s Installed ✅
+* Helm Installed ✅
+* Prometheus + Grafana Deployed ✅
+* Grafana Dashboard Configured ✅
+
+

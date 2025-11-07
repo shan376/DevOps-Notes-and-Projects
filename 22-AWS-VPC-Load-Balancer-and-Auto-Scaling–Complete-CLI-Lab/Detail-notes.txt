@@ -1,0 +1,286 @@
+### 📘 **detail.txt**
+
+**1. VPC Basics**
+
+**Conceptual Explanation:**
+VPC (Virtual Private Cloud) ek private network hota hai jo AWS ke andar aap create karte ho.
+Isme aap apne IP addresses, subnets (chhoti chhoti networks), aur rules set karte ho.
+Matlab aap apni chhoti si city AWS cloud ke andar bana lete ho jahan aapki traffic control hoti hai.
+
+**Real-World Example:**
+Socho aap ek company ho jiska ek office building hai.
+Aap office mein do alag areas banate ho: ek public area jahan visitors aa sakte hain (public subnet),
+aur ek private area jahan sirf staff ja sakte hain (private subnet).
+Public subnet par aapka web app chalta hai jo internet se accessible hota hai.
+Private subnet mein aapka database ya sensitive data hota hai jahan direct internet access nahi hota.
+
+**Practical Work Summary:**
+
+* Ek VPC create karte hain jisme public aur private subnets hotay hain.
+* Public subnet internet gateway (IGW) se connected hota hai.
+* Routing rules set karte hain taake traffic sahi subnet tak jaye.
+* EC2 servers launch karte hain public aur private subnets mein.
+* Public subnet ka server internet se ping hota hai, private ka nahi.
+
+---
+
+**2. Load Balancer & Auto Scaling**
+
+**Conceptual Explanation:**
+Load Balancer ek traffic manager hota hai jo multiple servers ke beech traffic divide karta hai.
+Agar aapke paas 3 servers hain to load balancer decide karta hai ke user kis server pe jaye.
+Auto Scaling system automatically servers badhata ya kam karta hai traffic load ke mutabiq.
+Zyada traffic pe naye servers launch karta hai, aur kam hone pe unhe terminate kar deta hai.
+
+**Real-World Example:**
+Socho ek restaurant hai jisme sirf 2 tables hain.
+Load Balancer waiter hai jo customers ko tables pe evenly baantta hai.
+Auto Scaling staff wo log hain jo naye tables lagate hain jab crowd badhta hai aur hata dete hain jab kam hota hai.
+
+**Practical Work Summary:**
+
+* 2 EC2 instances launch karte hain jisme Apache web server chalta hai.
+* Application Load Balancer (ALB) banate hain jo traffic ko dono servers pe bhejta hai.
+* Instances ko Target Group mein register karte hain.
+* Auto Scaling Group create karte hain jo load ke hisaab se servers add/remove karta hai.
+* Stress test run karke Auto Scaling ka response check karte hain.
+
+---
+
+### Summary in Simple Words
+
+| Topic                        | Hum Kya Kar Rahe Hain?                                                                | Real Life Example                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| VPC Basics                   | AWS me apna private network aur subnets banate hain (ek public aur ek private)        | Office building jisme visitor area aur staff-only area hota hai                          |
+| Load Balancer & Auto Scaling | Traffic ko servers ke beech divide karna aur load ke mutabiq servers add/remove karna | Restaurant jisme waiter tables pe log baantta hai aur zarurat par naye tables lagata hai |
+
+---
+
+**Simple Understanding:**
+
+* **VPC =** Aapki private city AWS ke andar.
+* **Load Balancer =** Traffic ka manager.
+* **Auto Scaling =** System jo demand ke hisaab se servers ki taadaad badhata ya kam karta hai.
+
+---
+
+### 📘 DevOps Lab: Load Balancer & Auto Scaling (CLI Based)
+
+**Step 1: Launch 2 EC2 Ubuntu Instances with Apache**
+
+```
+nano /home/ubuntu/install-apache.sh
+```
+
+Paste:
+
+```
+#!/bin/bash
+apt update -y
+apt install apache2 -y
+systemctl start apache2
+systemctl enable apache2
+echo "<h1>Apache installed via User Data Script</h1>" > /var/www/html/index.html
+```
+
+Save → `Ctrl + O`, `Enter`, Exit → `Ctrl + X`
+Then run:
+
+```
+chmod +r /home/ubuntu/install-apache.sh
+```
+
+Launch 2 instances:
+
+```
+aws ec2 run-instances \
+--image-id ami-xxxxxxxxxxxxxx \
+--count 2 \
+--instance-type t2.micro \
+--key-name your-key \
+--security-group-ids sg-xxxxxxxx \
+--subnet-id subnet-xxxxxxxx \
+--user-data file://install-apache.sh
+```
+
+**Roman Urdu Explanation:**
+Ye command do Ubuntu servers launch karti hai jisme Apache automatically install hota hai — jaise do nayi dukaanen kholna jahan aapka web app serve hota hai.
+
+---
+
+**Step 2: Create Target Group**
+
+```
+aws elbv2 create-target-group \
+--name my-target-group \
+--protocol HTTP \
+--port 80 \
+--vpc-id vpc-xxxxxxxx \
+--target-type instance
+```
+
+Roman Urdu: Target group ek list hoti hai jahan load balancer traffic bhejta hai — jaise maal lene wali dukaanen ki list.
+
+---
+
+**Step 3: Create Load Balancer**
+
+```
+aws elbv2 create-load-balancer \
+--name my-alb \
+--subnets subnet-aaa subnet-bbb \
+--security-groups sg-xxxxxxxx \
+--scheme internet-facing \
+--type application \
+--ip-address-type ipv4
+```
+
+Agar AZ ka issue aaye to ek naya subnet banao:
+
+```
+aws ec2 create-subnet \
+--vpc-id vpc-0e32913fcb165be2e \
+--cidr-block 10.0.3.0/24 \
+--availability-zone us-east-1b
+```
+
+Roman Urdu: Load Balancer manager ki tarah traffic ko barabar divide karta hai.
+
+---
+
+**Step 4: Register Instances**
+
+```
+aws elbv2 register-targets \
+--target-group-arn arn:aws:elasticloadbalancing:region:account-id:targetgroup/my-target-group/xxxxxxxxxxxxxxxx \
+--targets Id=i-xxxxxxx Id=i-yyyyyyy
+```
+
+Agar permission error aaye to ek policy file banao (`elbv2-policy.json`) aur dobara run karo.
+
+Roman Urdu: Ye step manager ko batata hai kaun kaun se servers traffic lene ke liye ready hain.
+
+---
+
+**Step 5: Create Launch Template File**
+
+```
+nano template-config.json
+```
+
+Paste:
+
+```
+{
+"ImageId": "ami-0fc5d935ebf8bc3bc",
+"InstanceType": "t2.micro",
+"KeyName": "jenkins-key",
+"SecurityGroupIds": ["sg-0c8c293c4839a2649"],
+"UserData": "IyEvYmluL2Jhc2gKc3VkbyBhcHQtdXBkYXRlCnN1ZG8gYXB0IGluc3RhbGwgeWEgYXBhY2hlMjIKc3VkbyBzeXN0ZW1jdGwgc3RhcnQgYXBhY2hlMg=="
+}
+```
+
+Roman Urdu: Ye ek form hai jisme server ki details hoti hain taake future mein same type ka server easily launch ho sake.
+
+---
+
+**Step 6: Create Launch Template**
+
+```
+aws ec2 create-launch-template \
+--launch-template-name my-template \
+--version-description "v1" \
+--launch-template-data file://template-config.json
+```
+
+Roman Urdu: Ye AWS ko wo form submit karta hai jisse wo naye servers automatically bana sake.
+
+---
+
+**Step 7: Create Auto Scaling Group**
+
+```
+aws autoscaling create-auto-scaling-group \
+--auto-scaling-group-name my-asg \
+--launch-template LaunchTemplateName=my-template,Version=1 \
+--min-size 1 \
+--max-size 3 \
+--desired-capacity 1 \
+--vpc-zone-identifier "subnet-aaa,subnet-bbb" \
+--target-group-arns arn:aws:elasticloadbalancing:region:account-id:targetgroup/my-target-group/xxxxxxxxxxxxxxxx
+```
+
+Roman Urdu: Ye system decide karta hai kitne servers chahiye aur load ke hisaab se auto add/remove karta hai.
+
+---
+
+**Step 8: Stress Test**
+
+```
+sudo apt update
+sudo apt install -y stress
+stress --cpu 2
+```
+
+Roman Urdu: Ye command load simulate karti hai — jaise zyada customers aajayen aur system automatically naye staff laga de.
+
+---
+
+### 🔍 Replacement Values Check Commands
+
+**To find AMI ID:**
+
+```
+aws ec2 describe-images --owners 099720109477 --region us-east-1
+```
+
+**To see Key Pair:**
+
+```
+aws ec2 describe-key-pairs --query "KeyPairs[*].KeyName" --output table
+```
+
+**To see Security Group:**
+
+```
+aws ec2 describe-security-groups \
+--query "SecurityGroups[?IpPermissions[?ToPort==`80`]].{ID:GroupId,Name:GroupName}" \
+--output table
+```
+
+**To see Subnet ID:**
+
+```
+aws ec2 describe-subnets \
+--query "Subnets[?MapPublicIpOnLaunch==`true`].{ID:SubnetId,AZ:AvailabilityZone}" \
+--output table
+```
+
+**To see VPC ID:**
+
+```
+aws ec2 describe-vpcs --query "Vpcs[*].VpcId" --output table
+```
+
+**To see Subnet IDs (for VPC):**
+
+```
+aws ec2 describe-subnets \
+--query "Subnets[*].{Subnet_ID:SubnetId, VPC_ID:VpcId, CIDR:CidrBlock, AZ:AvailabilityZone}" \
+--output table
+```
+
+**To see EC2 Instance IDs:**
+
+```
+aws ec2 describe-instances \
+--query "Reservations[*].Instances[*].InstanceId" \
+--output text
+```
+
+**To see Target Group ARN:**
+
+```
+aws elbv2 describe-target-groups --query "TargetGroups[*].{Name:TargetGroupName,ARN:TargetGroupArn}" --output table
+```
+
