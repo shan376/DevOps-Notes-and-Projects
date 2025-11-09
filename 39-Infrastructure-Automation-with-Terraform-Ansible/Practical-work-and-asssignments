@@ -1,0 +1,88 @@
+✅ Infrastructure Automation using Terraform + Ansible
+
+🛠️ Practical Work:
+
+Step 1: Create New EC2 (Ubuntu 22.04)
+- AWS Console se EC2 launch karo
+- Region: us-east-2
+- Instance Type: t2.micro
+- OS: Ubuntu 22.04
+- Security Group: Allow port 22 (SSH) + 80 (HTTP)
+- Ye step EC2 create karne ke liye hai jahan Terraform kaam karega
+
+Step 2: SSH Into EC2 & Install Required Tools
+ssh kar ke connect ho jao aur commands run karo:
+sudo apt update
+sudo apt install -y unzip curl gnupg software-properties-common
+- Ye tools Terraform aur Ansible ke liye required hain
+
+Step 3: Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+- Ye step AWS CLI install kar ke EC2 ko AWS ke sath authenticate karta hai
+
+Step 4: Install Terraform
+curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update
+sudo apt install terraform -y
+terraform -version
+- Ye step Terraform install karta hai jo infrastructure create karega
+
+Step 5: Install Ansible
+sudo apt update
+sudo apt install -y ansible
+ansible --version
+- Ansible install hota hai taake software install aur configure ho sake
+
+Step 6: Configure AWS CLI
+aws configure
+# Access Key ID: [paste here]
+# Secret Access Key: [paste here]
+# Region: us-east-2
+# Output format: json
+- Ye step IAM user credentials se AWS CLI configure karta hai
+
+Step 7: Setup SSH Key for Ansible
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+cat ~/.ssh/id_rsa.pub
+- Public key copy kar ke EC2 me add karni hai, Ansible ke liye
+
+Step 8: Project Directory Structure & Terraform Code
+mkdir terraform-ansible
+cd terraform-ansible
+- main.tf create karo aur paste karo Terraform code jo:
+  - AWS provider setup
+  - Key pair create
+  - Security group allow SSH & HTTP
+  - EC2 instance with local-exec Ansible provisioner
+- Ye step Terraform se infrastructure create karne ke liye hai
+
+Step 9: Write Ansible Playbook
+- playbook.yml create karo
+- Paste karo:
+  - Install Apache
+  - Upload custom index.html
+- Ye step software install aur webpage configure karta hai
+
+Step 10: Initialize and Apply Terraform
+terraform init
+terraform plan
+terraform apply
+- Type "yes" to confirm
+- Ye step poori infrastructure automate karta hai: EC2 create + Apache install + webpage serve
+
+✅ Final Output:
+- EC2 created with Terraform
+- Apache installed automatically via Ansible
+- Custom HTML served on new EC2's public IP
+- Browser me IP open karke test karo: http://<public-ip>
+
+🧾 Assignment: Auto Infrastructure Project
+1.	Create EC2 using Terraform
+2.	Use Ansible provisioner to install Apache
+3.	Add your own custom webpage
+4.	Test by visiting EC2 public IP
+5.      Push full project to GitHub for portfolio.

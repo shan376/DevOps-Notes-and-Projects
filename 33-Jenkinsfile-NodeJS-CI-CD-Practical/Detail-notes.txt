@@ -1,0 +1,246 @@
+📘 Jenkinsfile (Declarative Pipeline for Node.js App)
+✅ Conceptual Understanding (English):
+A Jenkinsfile is a text file that defines a Jenkins pipeline — the sequence of steps to build, test, and deploy your application. It uses either:
+•	Declarative syntax: Recommended; more readable and structured.
+•	Scripted syntax: More powerful and flexible (written in Groovy).
+This file is usually stored in the root of your GitHub project. Jenkins reads it to automate CI/CD.
+________________________________________
+🧠 Roman Urdu Explanation:
+Jenkinsfile aik text file hoti hai jismein likha hota hai ke Jenkins ko kis order mein kaam karna hai — jaise ke code build karna, test chalana, aur deploy karna.
+Yeh file project ke root folder mein hoti hai aur jab bhi code push hota hai, Jenkins is Jenkinsfile ke mutabiq automation run karta hai.
+Samajhne ke liye Choti Example Story:
+Socho tumhari ek Node.js app hai BookStore naam ki.
+Is app ka code GitHub pe rakha hai.
+Ab tum DevOps Engineer ho — tum Jenkins ko ye kehna chah rahay ho:
+"Jab bhi koi naya code aaye GitHub se, tu ye 4 kaam automatically kar dena."
+________________________________________
+🛠️ Step-by-Step Practical Implementation (Node.js Example)
+🔧 Note: This example uses a Node.js project and defines a basic Jenkinsfile to automate the pipeline.
+✅ Install Java (JDK 17)
+bash
+CopyEdit
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+________________________________________
+✅ Install Maven
+bash
+CopyEdit
+sudo apt install maven -y
+mvn -v
+________________________________________
+✅ Install Jenkins (Port 8080 default)
+1. Add Jenkins GPG key
+bash
+CopyEdit
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+2. Add Jenkins repository
+bash
+CopyEdit
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+3. Update package list and install Jenkins
+bash
+CopyEdit
+sudo apt update
+sudo apt install jenkins -y
+________________________________________
+✅ Start, Enable & Check Jenkins Service Status
+bash
+CopyEdit
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+________________________________________
+Jenkins by default runs on port 8080, so you can access it in your browser using:
+cpp
+CopyEdit
+http://<your-server-ip>:8080
+
+✅ Install Node.js (on EC2 or Jenkins server):
+sudo apt update
+sudo apt install nodejs -y
+sudo apt install npm -y
+node -v
+npm -v
+🧾 Roman Urdu Explanation of Stages:
+1.	Install Dependencies:
+npm install command run karta hai jo project ke liye required packages install karta hai.
+2.	Run Tests:
+npm test se automated tests run hotay hain jo quality check karte hain.
+3.	Build:
+npm run build command app ko production ke liye tayar karta hai.
+4.	Deploy:
+echo command filhaal sirf simulate kar raha hai ke deploy ho raha hai. (Real deployment yahan add kiya ja sakta hai.)
+✅  Project Folder Open Karo
+Agar tumhare paas pehle se Node.js project hai, to:
+bash
+CopyEdit
+cd tumhare-project-ka-folder
+Agar nahi hai, to ek naya banao:
+bash
+CopyEdit
+mkdir my-node-app
+cd my-node-app
+npm init -y   # basic Node.js project ban jaye
+________________________________________
+ Jenkinsfile Create Karo
+Command:
+bash
+CopyEdit
+nano Jenkinsfile
+Ye command ek new file kholegi jiska naam Jenkinsfile hoga (without any extension).
+Paste Jenkinsfile Code
+Ab tum ye code paste karo terminal mein (ya right-click se paste):
+groovy
+CopyEdit
+pipeline {
+  agent any
+
+  stages {
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
+    }
+
+    stage('Run Tests') {
+      steps {
+        sh 'npm test'
+      }
+    }
+
+    stage('Build') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        echo 'Deploying the application...'
+      }
+    }
+  }
+}
+✅ Fix pom.xml (with dependencies)
+nano pom.xml
+Paste the following content inside pom.xml:
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd"> 
+ 
+    <modelVersion>4.0.0</modelVersion> 
+    <groupId>com.shan.app</groupId> 
+    <artifactId>my-app</artifactId> 
+    <version>1.0-SNAPSHOT</version> 
+    <packaging>jar</packaging> 
+ 
+    <name>My Maven App</name> 
+    <description>Simple Maven App integrated with Jenkins</description> 
+ 
+    <dependencies> 
+        <dependency> 
+            <groupId>junit</groupId> 
+            <artifactId>junit</artifactId> 
+            <version>4.13.2</version> 
+            <scope>test</scope> 
+        </dependency> 
+    </dependencies> 
+ 
+    <build> 
+        <plugins> 
+            <plugin> 
+                <groupId>org.apache.maven.plugins</groupId> 
+                <artifactId>maven-compiler-plugin</artifactId> 
+                <version>3.8.1</version> 
+                <configuration> 
+                    <source>1.8</source> 
+                    <target>1.8</target> 
+                </configuration> 
+            </plugin> 
+        </plugins> 
+    </build> 
+</project>
+
+✅ package.json (working version with dummy test and build)
+Open package.json file as 
+nano package.json
+
+Paste this code
+
+{
+  "name": "my-node-app",
+  "version": "1.0.0",
+  "description": "Simple Node.js app for Jenkins CI/CD testing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Dummy test passed\" && exit 0",
+    "build": "echo \"Build successful\""
+  },
+  "author": "Shan",
+  "license": "ISC",
+  "dependencies": {}
+}
+
+________________________________________
+✅ Push to GitHub
+git init
+git remote add origin https://github.com/shan376/node-ci-pipeline.git
+git add .
+git commit -m "Initial Maven project with Jenkinsfile"
+git branch -M main
+git push -u origin main
+🔐 Add GitHub Credentials in Jenkins
+1.	Jenkins → Manage Jenkins → Credentials → (Global) → Add Credentials
+2.	Type: Username with Password
+o	Username: Your GitHub username
+o	Password: GitHub Personal Access Token
+🏗️ Create Jenkins Pipeline Job for Node.js Project
+1.	Jenkins Dashboard → New Item
+2.	Name: node-ci-pipeline → Select Pipeline → OK
+3.	In Pipeline section:
+o	Pipeline script from SCM
+o	SCM: Git
+o	Repository URL: https://github.com/yourusername/node-ci-pipeline.git
+o	Branch: */main
+o	Script Path: Jenkinsfile
+🌐 Set Up Webhook in GitHub
+1.	GitHub → Your Repo → Settings → Webhooks → Add Webhook
+2.	Fill:
+o	Payload URL: http://<jenkins-ip>:8080/github-webhook/
+o	Content type: application/json
+o	Event: Just the push event
+o	✅ Active
+✅ Enable GitHub Trigger in Jenkins
+1.	Jenkins Dashboard → Pipeline Job → Configure
+2.	Scroll to Build Triggers
+3.	✅ Check: GitHub hook trigger for GITScm polling
+🔁 Real Testing:
+•	README.md, index.js ya Jenkinsfile edit karo → GitHub pe push karo
+•	Jenkins should automatically build → test → simulate deploy
+________________________________________
+📌 Roman Urdu Summary:
+• Jenkinsfile ek automation script hai jo pipeline define karta hai
+• Node.js app ke liye humne 4 stages likhi: install, test, build, deploy
+• Jenkinsfile GitHub pe push kiya
+• Jenkins mein GitHub repo configure kiya aur webhook setup kiya
+• Jab bhi koi code push hota hai → Jenkins auto build aur test karta hai
+➡️ Yeh automation Developer ka kaam asaan bana deta hai!
+________________________________________
+🔍 Quick Checklist
+✅ Topic	Status
+Jenkinsfile ka concept (English + Roman Urdu)	✔️
+Node.js + Jenkins integration ka use case	✔️
+Java, Maven, Jenkins, Node.js installation steps	✔️
+Project setup + npm init	✔️
+Jenkinsfile code explanation	✔️
+package.json with dummy test/build	✔️
+pom.xml for Maven support	✔️
+GitHub push steps with Git remote	✔️
+Jenkins GitHub credentials add karna	✔️
+Webhook setup in GitHub	✔️
+Build triggers in Jenkins	✔️
+Final Roman Urdu Summary	✔️
+Real-time CI/CD testing tips	✔️

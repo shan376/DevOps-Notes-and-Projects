@@ -1,0 +1,210 @@
+# **Practical Work & Assignments — Jenkins CI/CD Pipeline for Java App Deployment**
+
+### **1️⃣ Java Install (JDK 17)**
+
+* Java install karni hai taake Maven aur Jenkins properly kaam kare.
+
+```bash
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+```
+
+> Java version check karke ensure karo installation sahi hui hai.
+
+---
+
+### **2️⃣ Maven Install**
+
+* Maven install karna taake Java project build aur test ho sake.
+
+```bash
+sudo apt install maven -y
+mvn -v
+```
+
+---
+
+### **3️⃣ Jenkins Install**
+
+* Jenkins install karna aur start karna.
+
+```bash
+# Jenkins GPG key add karo
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+
+# Jenkins repository add karo
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+# Package update aur Jenkins install karo
+sudo apt update
+sudo apt install jenkins -y
+```
+
+---
+
+### **4️⃣ Start & Enable Jenkins**
+
+* Jenkins service start aur enable karna.
+
+```bash
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+```
+
+---
+
+### **5️⃣ Unlock Jenkins & Initial Setup**
+
+1. Browser me visit karo: `http://<your-ec2-ip>:8080`
+2. Admin password get karo:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+3. Password paste → Continue → Install Suggested Plugins → Admin user create → Finish
+
+---
+
+### **6️⃣ Install Jenkins Plugins**
+
+* Jenkins dashboard → Manage Jenkins → Plugins → Available tab:
+
+  * GitHub plugin
+  * Git plugin
+  * Pipeline
+  * GitHub Branch Source
+
+---
+
+### **7️⃣ Create Maven Project & GitHub Repo**
+
+```bash
+mvn archetype:generate -DgroupId=com.example -DartifactId=ci-demo -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+cd ci-demo
+```
+
+---
+
+### **8️⃣ Add Jenkinsfile**
+
+```bash
+nano Jenkinsfile
+```
+
+* Paste pipeline code:
+
+```groovy
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Build') { steps { sh 'mvn clean package' } }
+    stage('Test') { steps { sh 'mvn test' } }
+    stage('Deploy') { steps { echo 'Simulating deployment step' } }
+    stage('Notify') { steps { echo 'Build completed successfully!' } }
+  }
+}
+```
+
+---
+
+### **9️⃣ Fix pom.xml (Dependencies)**
+
+```bash
+nano pom.xml
+```
+
+* Paste code with JUnit dependency:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0" ...>
+<modelVersion>4.0.0</modelVersion>
+<groupId>com.shan.app</groupId>
+<artifactId>my-app</artifactId>
+<version>1.0-SNAPSHOT</version>
+<packaging>jar</packaging>
+<name>My Maven App</name>
+<dependencies>
+<dependency>
+<groupId>junit</groupId>
+<artifactId>junit</artifactId>
+<version>4.13.2</version>
+<scope>test</scope>
+</dependency>
+</dependencies>
+<build>
+<plugins>
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-compiler-plugin</artifactId>
+<version>3.8.1</version>
+<configuration><source>1.8</source><target>1.8</target></configuration>
+</plugin>
+</plugins>
+</build>
+</project>
+```
+
+---
+
+### **🔟 Push to GitHub**
+
+```bash
+git init
+git remote add origin https://github.com/shan376/ci-demo.git
+git add .
+git commit -m "Initial Maven project with Jenkinsfile"
+git branch -M main
+git push -u origin main
+```
+
+---
+
+### **1️⃣1️⃣ Add GitHub Credentials in Jenkins**
+
+* Jenkins → Manage Jenkins → Credentials → (Global) → Add → "Username with Password"
+
+  * Username = GitHub username
+  * Password = GitHub Personal Access Token
+
+---
+
+### **1️⃣2️⃣ Create Jenkins Pipeline Job**
+
+1. Jenkins Dashboard → New Item → Name: `ci-demo-pipeline` → Pipeline → OK
+2. Pipeline script from SCM → Git → Repo URL: `https://github.com/yourusername/ci-demo.git` → Credentials select → Branch: `*/main` → Script Path: `Jenkinsfile`
+
+---
+
+### **1️⃣3️⃣ Setup GitHub Webhook**
+
+* GitHub → ci-demo repo → Settings → Webhooks → Add Webhook
+
+  * Payload URL: `http://<your-jenkins-ip>:8080/github-webhook/`
+  * Content type: `application/json`
+  * Events: Just the push event → Active
+
+* Jenkins → Pipeline Job → Configure → Build Triggers → ✅ GitHub hook trigger for GITScm polling
+
+---
+
+### **1️⃣4️⃣ Final Testing**
+
+* GitHub repo me koi file edit karo (App.java / Jenkinsfile)
+* Push changes
+* Jenkins automatically build, test aur deploy run karega
+
+---
+
+### **📌 Summary (Roman Urdu)**
+
+* EC2 Ubuntu instance launch kiya
+* Java 17, Maven, Jenkins install kiya aur configure kiya
+* GitHub repo create aur Jenkinsfile setup ki
+* Jenkins plugin aur credentials add kiye
+* Pipeline job banayi aur webhook setup ki
+* GitHub push pe Jenkins automatic build, test aur deploy karega
+

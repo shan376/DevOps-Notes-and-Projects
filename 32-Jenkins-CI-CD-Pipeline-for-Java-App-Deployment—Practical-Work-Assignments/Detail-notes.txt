@@ -1,0 +1,328 @@
+**Jenkins CI/CD Pipeline for Java App Deployment**
+Conceptual Understanding (English):
+Jenkins is an open-source automation server that enables developers to build, test, and deploy code automatically. In a CI/CD pipeline, Jenkins pulls code from version control (e.g., GitHub), builds it using tools like Maven, runs tests, and then deploys it to a server.
+
+**Roman Urdu Explanation:**
+Jenkins ek automation tool hai jo hamare code ko automatically build, test aur deploy karta hai. Hum GitHub se code lete hain, Jenkins usay Maven ke through build karta hai, test run karta hai aur phir deploy karta hai.
+
+**Step-by-Step Practical Implementation**
+Note : must set port 8080 for Jenkins.
+
+✅ **Install Java (JDK 17)**
+
+```bash
+sudo apt update  
+sudo apt install openjdk-17-jdk -y  
+java -version  
+```
+
+✅ **Install Maven**
+
+```bash
+sudo apt install maven -y  
+mvn -v  
+```
+
+✅ **Install Jenkins**
+
+```bash
+# Jenkins GPG key add karo  
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -  
+
+# Jenkins repository add karo  
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'  
+
+# Package list update karo aur Jenkins install karo  
+sudo apt update  
+sudo apt install jenkins -y  
+```
+
+✅ **Start, Enable & Check Jenkins Status**
+
+```bash
+sudo systemctl start jenkins  
+sudo systemctl enable jenkins  
+sudo systemctl status jenkins  
+```
+
+**Unlock Jenkins and Initial Setup**
+
+1. Visit in browser:
+   `http://<your-ec2-ip>:8080`
+2. Get Admin Password:
+
+   ```bash
+   sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+   ```
+3. Paste → Continue → Install Suggested Plugins
+4. Create Admin User → Finish
+
+---
+
+**Install Jenkins Plugins**
+Jenkins Dashboard → Manage Jenkins → Plugins
+In "Available" tab, search and install:
+
+* GitHub plugin
+* Git plugin
+* Pipeline
+* GitHub Branch Source
+
+---
+
+**Create GitHub Repo & Real Maven Project**
+
+```bash
+# Create Maven project  
+mvn archetype:generate -DgroupId=com.example -DartifactId=ci-demo -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false  
+cd ci-demo  
+```
+
+➕ **Add Jenkinsfile**
+
+```bash
+nano Jenkinsfile
+```
+
+Paste this:
+
+```groovy
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'mvn clean package'
+      }
+    }
+    stage('Test') {
+      steps {
+        sh 'mvn test'
+      }
+    }
+    stage('Deploy') {
+      steps {
+        echo 'Simulating deployment step'
+      }
+    }
+    stage('Notify') {
+      steps {
+        echo 'Build completed successfully!'
+      }
+    }
+  }
+}
+```
+
+---
+
+🛠 **Fix pom.xml (with dependencies)**
+
+```bash
+nano pom.xml
+```
+
+Paste this:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<modelVersion>4.0.0</modelVersion>
+<groupId>com.shan.app</groupId>
+<artifactId>my-app</artifactId>
+<version>1.0-SNAPSHOT</version>
+<packaging>jar</packaging>
+<name>My Maven App</name>
+<description>Simple Maven App integrated with Jenkins</description>
+<dependencies>
+<dependency>
+<groupId>junit</groupId>
+<artifactId>junit</artifactId>
+<version>4.13.2</version>
+<scope>test</scope>
+</dependency>
+</dependencies>
+<build>
+<plugins>
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-compiler-plugin</artifactId>
+<version>3.8.1</version>
+<configuration>
+<source>1.8</source>
+<target>1.8</target>
+</configuration>
+</plugin>
+</plugins>
+</build>
+</project>
+```
+
+---
+
+🔄 **Push to GitHub**
+
+```bash
+git init  
+git remote add origin https://github.com/shan376/ci-demo.git  
+git add .  
+git commit -m "Initial Maven project with Jenkinsfile"  
+git branch -M main  
+git push -u origin main  
+```
+
+---
+
+**Add GitHub Credentials to Jenkins**
+
+1. Jenkins → Manage Jenkins → Credentials → (Global) → Add
+2. Type: "Username with Password"
+
+   * Username = your GitHub username
+   * Password = your GitHub Personal Access Token
+
+---
+
+**Create Jenkins Pipeline Job**
+
+1. Jenkins Dashboard → New Item
+2. Name: ci-demo-pipeline → Select Pipeline → OK
+3. In Pipeline Section:
+
+   * Pipeline script from SCM
+   * SCM: Git
+   * Repo URL: `https://github.com/yourusername/ci-demo.git`
+   * Credentials: (select GitHub token)
+   * Branch: `*/main`
+   * Script Path: Jenkinsfile
+
+---
+
+**Setup GitHub Webhook**
+
+1. GitHub → ci-demo repo → Settings → Webhooks → Add Webhook
+2. Enter:
+
+   * Payload URL: `http://<your-jenkins-ip>:8080/github-webhook/`
+   * Content type: `application/json`
+   * Events: Just the push event
+   * ✅ Active
+
+✅ **Enable Webhook Trigger in Jenkins**
+
+1. Jenkins → ci-demo-pipeline → Configure
+2. Scroll to Build Triggers
+3. ✅ Check: GitHub hook trigger for GITScm polling
+
+---
+
+🧪 **Final Testing**
+
+* Edit any file in GitHub repo (e.g., App.java or Jenkinsfile)
+* Push changes
+* Jenkins should auto-trigger the build and show success logs
+
+---
+
+📊 **Final Summary (Roman Urdu):**
+
+* Hum ne AWS EC2 Ubuntu instance launch kiya
+* Java, Jenkins, Maven install kiya aur Jenkins configure kiya
+* Jenkins dashboard se new pipeline job banai
+* GitHub repo se Jenkinsfile pull karwaya
+* Webhook setup kiya taake Jenkins automatically run ho jab code push ho
+* Jenkinsfile mein build, test aur deploy stages likhi
+* Pom.xml error fix kiya aur build successfully run kiya ➡️
+  Ab hamara CI/CD pipeline automation setup ready hai for Java projects using Jenkins!
+
+---
+
+**Bilkul! Ab main tumhein poora Jenkins CI/CD pipeline ka kaam real-life example ke zariye Roman Urdu mein samjhata hoon 👇**
+
+**Real-Life Scenario: BookBazaar Java Website (optional)**
+To understand more deeply —
+Socho tum ek company mein kaam kar rahe ho jiska naam hai **BookBazaar**, ek online bookstore hai jahan se log books order karte hain. Backend Java mein bana hai aur AWS pe host hai.
+
+Company chah rahi hai:
+
+* Developer jab bhi GitHub pe code push kare 🚀
+* Jenkins us code ko automatically build, test aur deploy karde ✅
+
+---
+
+🔧 **Step-by-Step Real-Life Flow (Roman Urdu)**
+
+🔹 1. Developer Code Likhta Hai
+Developer ne ek naya feature add kiya: ➡️ “10% discount on first purchase”
+Aur usne ye code GitHub pe push kar diya.
+
+🔹 2. Jenkins Server Setup (One-time kaam)
+Tum DevOps Engineer ho — tumne AWS EC2 Ubuntu instance launch kiya aur:
+
+1. Java 17 install kiya — taake Maven Java ko compile kar sake
+2. Maven install kiya — Java app build aur test karne ke liye
+3. Jenkins install kiya — automation karne ke liye (build/test/deploy)
+
+🧠 Yani tumne ek robot setup kiya hai jo developer ke code push karte hi kaam shuru karega.
+
+🔹 3. GitHub Project & Jenkinsfile Setup
+Tumne GitHub pe ek project `ci-demo` banaya jisme:
+
+* `pom.xml` — batata hai Maven ko kaise Java project build karna hai
+* `Jenkinsfile` — batata hai Jenkins ko kya kya steps lene hain (Checkout → Build → Test → Deploy)
+
+📘 Ye Jenkinsfile ek recipe ki tarah hoti hai — step by step guide Jenkins ko milti hai.
+
+🔹 4. Jenkins Plugin aur Credentials Add Kiye
+Jenkins dashboard se tumne ye setup kiya:
+
+* GitHub plugin, Pipeline plugin install kiye
+* GitHub credentials (username & personal token) diye taake Jenkins access le sake
+
+🔹 5. Jenkins Pipeline Job Banayi
+Tumne Jenkins dashboard pe ek pipeline job banayi:
+
+* Usme GitHub repo ka URL diya
+* Branch set ki: main
+* Jenkinsfile ka path diya: Jenkinsfile
+* Build trigger lagaya: GitHub hook trigger
+
+🔹 6. GitHub Webhook Setup Kiya
+GitHub ke `ci-demo` repo mein:
+
+* Webhook banaya
+* Jenkins ka IP diya: `http://<jenkins-ip>:8080/github-webhook/`
+* Event select kiya: Just the push event
+
+📦 Ab jab bhi GitHub pe koi change aayega, webhook Jenkins ko notify karega.
+
+🔹 7. Real Test: Developer Change Karta Hai
+Developer `App.java` file edit karta hai aur GitHub pe push karta hai.
+🔁 Webhook Jenkins ko signal deta hai:
+“🚨 Bhai naya code aaya hai, kaam shuru karo!”
+
+Jenkins turant ye steps run karta hai:
+
+1. Code checkout karta hai (GitHub se)
+2. Maven se build karta hai
+3. Tests run karta hai
+4. Deploy simulate karta hai
+5. Notify karta hai: Success!
+
+📊 **Final Roman Urdu Summary:**
+
+* Humne EC2 instance launch kiya
+* Java, Maven, Jenkins install kiya
+* GitHub repo banaya aur Jenkinsfile likhi
+* Jenkins pipeline job banayi
+* Webhook setup kiya
+* Jab developer ne GitHub pe push kiya → Jenkins ne automatically build + test + deploy kiya
+
+🎉 **Ab tumhara CI/CD pipeline setup ready hai Java projects ke liye!**
