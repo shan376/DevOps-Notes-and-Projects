@@ -1,0 +1,169 @@
+✅ Infrastructure Automation using Terraform + Ansible
+🧑‍💻 Goal:
+Fully automate infrastructure provisioning and configuration from scratch using Terraform and Ansible.
+You will:
+1.	Launch EC2 using Terraform.
+2.	Automatically install Apache using Ansible.
+3.	Run everything using one command: terraform apply
+________________________________________
+📘 Conceptual Explanation:
+🔹 Infrastructure Automation:
+Infrastructure Automation = Terraform (Provisioning) + Ansible (Configuration)
+Tool	Purpose
+Terraform	Creates EC2, VPC, S3, etc.
+Ansible	Installs software, configures servers
+________________________________________
+🧠 Roman Urdu:
+Terraform se EC2 jese resources banate hain, lekin software install aur config Ansible karta hai. Dono milke pure automation banate hain.
+Example: EC2 auto create ho jaye + Apache bhi install ho jaye = No manual steps!
+________________________________________
+🛠️ Full Practical: Scratch Se Infrastructure Automation
+✅ Step 1: Create New EC2 (Ubuntu 22.04)
+•	Region: us-east-2
+•	Instance Type: t2.micro
+•	OS: Ubuntu 22.04
+•	Security Group: Allow port 22 (SSH) + 80 (HTTP)
+✅ Step 2: SSH Into EC2 & Install Required Tools
+sudo apt update
+sudo apt install -y unzip curl gnupg software-properties-common
+________________________________________
+✅ Step 3: Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+✅ Step 4: Install Terraform
+curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+  sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+sudo apt update
+sudo apt install terraform -y
+terraform -version
+✅ Step 5: Install Ansible
+sudo apt update
+sudo apt install -y ansible
+ansible --version
+________________________________________
+✅ Step 6: Configure AWS CLI
+Use credentials from your IAM user:
+aws configure
+# Access Key ID: [paste here]
+# Secret Access Key: [paste here]
+# Region: us-east-2
+# Output format: json
+________________________________________
+✅ Step 7: Setup SSH Key for Ansible
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+cat ~/.ssh/id_rsa.pub
+Copy public key for later use (we’ll add to EC2).
+________________________________________
+✅ Step 8: Project Directory Structure
+mkdir terraform-ansible
+cd terraform-ansible
+📄 Create main.tf
+provider "aws" {
+  region = "us-east-2"
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "mykeyshan4"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+resource "aws_security_group" "allow_ssh_http" {
+  name        = "allow_ssh_http"
+  description = "Allow SSH and HTTP inbound traffic"
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_ssh_http"
+  }
+}
+
+resource "aws_instance" "web" {
+  ami                    = "ami-0ee23bfc74a881de5" # Ubuntu 22.04 us-east-2
+  instance_type          = "t2.micro"
+  key_name               = aws_key_pair.deployer.key_name
+  vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      sleep 120 && ANSIBLE_HOST_KEY_CHECKING=False \
+      ansible-playbook -i '${self.public_ip},' playbook.yml \
+      --private-key ~/.ssh/id_rsa -u ubuntu
+    EOT
+  }
+
+  tags = {
+    Name = "WebServer"
+  }
+
+  depends_on = [aws_key_pair.deployer, aws_security_group.allow_ssh_http]
+}
+________________________________________
+✅ Step 9: Write Ansible Playbook
+📄 Create playbook.yml
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Upload custom index.html
+      copy:
+        content: "<h1>Hello from Terraform + Ansible</h1>"
+        dest: /var/www/html/index.html
+________________________________________
+✅ Step 10: Initialize and Apply
+terraform init
+terraform plan
+terraform apply
+✅ Type yes to confirm.
+________________________________________
+✅ Final Output:
+•	✅ EC2 created with Terraform
+•	✅ Apache installed automatically via Ansible
+•	✅ Custom HTML served on new EC2's public IP
+🌐 Browser Testing:
+Use the public IP shown in the terminal after apply:
+terraform output
+Copy the IP and open it in your browser:
+http://<public-ip>
+You should see:
+Hello from Terraform + Ansible
+________________________________________
+🧾 Assignment: Auto Infrastructure Project
+1.	Create EC2 using Terraform
+2.	Use Ansible provisioner to install Apache
+3.	Add your own custom webpage
+4.	Test by visiting EC2 public IP
+5.      Push full project to GitHub for portfolio.
+
+✅ DONE!

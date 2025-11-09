@@ -1,0 +1,65 @@
+⚙️ Practical Work: Terraform Basics with IAM User and Policy Setup
+
+🟢 Step 1: Launch New EC2 Instance
+# Ubuntu 22.04 LTS, t2.micro
+# SSH port 22 open karo
+# Short: EC2 ready for Terraform and AWS CLI
+
+🟢 Step 2: AWS CLI Manual Install (Agar apt se install nahi hota)
+sudo apt update
+sudo apt install unzip -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+# Short: CLI install ho gaya, AWS commands ready
+
+🟢 Step 3: IAM User aur Policy Setup
+# AWS Console → IAM → Users → Add user
+# Username: terraform-user
+# Access type: Programmatic access
+# Permissions: AmazonEC2FullAccess
+# Access Key & Secret Key save karo
+# Short: IAM user ready, Terraform ko access milega
+
+🟢 Step 4: AWS CLI Configure karo
+aws configure
+# Enter AWS Access Key, Secret Key, region, output format
+# Short: EC2 instance CLI ke through AWS access ready
+
+🟢 Step 5: Terraform Install
+sudo apt update
+sudo apt install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update
+sudo apt install terraform -y
+terraform -version
+# Short: Terraform install ho gaya, ready to create infrastructure
+
+🟢 Step 6: Terraform Configuration File banao
+nano main.tf
+# Provider aur AWS instance specify karo
+# Region, Access Key, Secret Key daalo
+# AMI ID apne region ka lagao
+# Example resource block: aws_instance
+# Short: main.tf ready, EC2 create karne ke liye configuration complete
+
+🟢 Step 7: Terraform Commands Run karo
+terraform init    # Workspace initialize
+terraform plan    # Check changes
+terraform apply   # Resource create, 'yes' type karo
+# Short: EC2 instance Terraform se deploy ho gaya
+
+🧰 Common Errors & Solutions
+# InvalidAMIID.NotFound → AMI ID ya region mismatch, sahi ID use karo
+# UnauthorizedOperation → IAM user permissions missing, AmazonEC2FullAccess attach karo
+# Package awscli not available → Manual install karo zip se
+# list index out of range → Region mismatch, correct region use karo
+
+📚 Assignment
+# 1. Naya IAM user create karo with EC2 access
+# 2. Terraform main.tf me IAM keys use karo
+# 3. Naya EC2 deploy karo desired region me
+# 4. AWS Console me verify karo instance bana hai ya nahi
+# 5. Agar errors aaye, reason samjho aur note karo

@@ -1,0 +1,143 @@
+ Terraform Advanced – Practical Work & Assignments
+________________________________________
+🟢 Practical Work
+
+Step 1: IAM User + Policy Setup (AWS Console)
+- AWS Console → IAM → Create User → terraform-user
+- Tick ✅ Programmatic access
+- Attach Policies:
+  • AmazonEC2FullAccess
+  • AmazonS3FullAccess (optional for remote state)
+- Copy Access Key ID & Secret Access Key (Save securely)
+Roman Urdu: Ye IAM user Terraform ko AWS par kaam karne ki permission dega.
+
+Step 2: Install AWS CLI on EC2
+- Connect via PuTTY / terminal
+- Commands:
+sudo apt update
+sudo apt install unzip -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+Roman Urdu: AWS CLI EC2 par install ho gaya, check karo version.
+
+Step 3: Configure AWS CLI
+- Command:
+aws configure
+- Enter:
+  • AWS Access Key ID
+  • AWS Secret Access Key
+  • Default region: us-east-2
+  • Output format: json
+Roman Urdu: Ab EC2 AWS ke sath authenticated hai.
+
+Step 4: Install Terraform on EC2
+- Commands:
+sudo apt update
+sudo apt install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update
+sudo apt install terraform -y
+terraform -version
+Roman Urdu: Terraform EC2 par ready hai.
+
+Step 5: Create Terraform Module Project
+- Commands:
+mkdir terraform-project
+cd terraform-project
+mkdir -p modules/ec2-instance
+touch main.tf modules/ec2-instance/ec2.tf modules/ec2-instance/variables.tf
+- modules/ec2-instance/ec2.tf:
+resource "aws_instance" "myec2" {
+  ami           = var.ami
+  instance_type = var.instance_type
+  tags = { Name = "ModularInstance" }
+}
+- modules/ec2-instance/variables.tf:
+variable "ami" {}
+variable "instance_type" {}
+- main.tf:
+provider "aws" { region = "us-east-2" }
+module "web" {
+  source        = "./modules/ec2-instance"
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "t2.micro"
+}
+Roman Urdu: Project aur module setup ho gaya, variables aur main.tf ready hain.
+
+Step 6: Apply Terraform
+- Commands:
+terraform init
+terraform plan
+terraform apply
+Type yes when asked
+Roman Urdu: EC2 instance launch ho gaya Terraform module se.
+
+📁 Folder Structure:
+terraform-project/
+├── main.tf
+└── modules/
+    └── ec2-instance/
+        ├── ec2.tf
+        └── variables.tf
+
+✅ Outcome: EC2 instance launched, IAM credentials work kar rahe, Terraform properly configured.
+
+________________________________________
+🟢 Assignments
+
+Step 1: Launch EC2 Ubuntu 22.04
+- Region: us-east-2
+- Instance type: t2.micro
+- Security: Allow port 22
+- OS: Ubuntu 22.04
+- SSH into instance
+
+Step 2: Install Terraform
+sudo apt update
+sudo apt install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update
+sudo apt install terraform -y
+terraform -v
+
+Step 3: Install AWS CLI
+sudo apt install unzip -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+
+Step 4: Create IAM User for Terraform
+- AWS Console → IAM → terraform-user
+- Enable Programmatic Access
+- Attach Policies: AmazonEC2FullAccess + AmazonS3FullAccess
+- Download Access Key & Secret Key
+
+Step 5: Configure AWS CLI
+aws configure
+- Enter credentials, region: us-east-2, output: json
+
+Step 6: Create S3 Bucket (Remote State)
+aws s3api create-bucket --bucket my-terraform-state-bucket --region us-east-2 --create-bucket-configuration LocationConstraint=us-east-2
+aws s3api put-bucket-versioning --bucket my-terraform-state-bucket --versioning-configuration Status=Enabled
+
+Step 7: Project Directory Setup
+mkdir terraform-project
+cd terraform-project
+mkdir -p modules/ec2-instance
+- Use same module & main.tf setup as practical work
+- Get AMI ID for Ubuntu 20.04 via CLI
+
+Step 8: Initialize, Plan, Apply
+terraform init      # configure S3 backend
+terraform plan      # check resources
+terraform apply     # deploy EC2
+Type yes when asked
+
+✅ Final Output: EC2 instance created via module, remote state in S3, IAM access working, no errors.
+
+________________________________________

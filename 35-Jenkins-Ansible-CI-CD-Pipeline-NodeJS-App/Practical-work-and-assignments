@@ -1,0 +1,387 @@
+# Jenkins + Ansible Integration Practical & Assignment
+
+## 🧪 Practical Work
+
+### Step 1: Launch Ubuntu EC2 Instance
+
+* Ubuntu 22.04 AMI, t2.medium
+* Security group me port 8080 allow karo (Jenkins ke liye)
+* SSH login via PuTTY/terminal
+
+```bash
+ssh -i "your-key.pem" ubuntu@<ec2-public-ip>
+```
+
+---
+
+### Step 2: Install Java & Jenkins
+
+**Install Java:**
+
+```bash
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+```
+
+**Install Jenkins:**
+
+```bash
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+sudo apt update
+sudo apt install jenkins -y
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+```
+
+---
+
+### Step 3: Access Jenkins Web UI
+
+* URL: `http://<your-ec2-public-ip>:8080`
+* Unlock Jenkins:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+* Setup wizard → Install Suggested Plugins → Create Admin User → Dashboard ready
+
+---
+
+### Step 4: Install Ansible
+
+```bash
+sudo apt update
+sudo apt install ansible -y
+```
+
+---
+
+### Step 5: Allow Jenkins to Run Ansible
+
+```bash
+sudo usermod -aG sudo jenkins
+sudo visudo
+# Add at bottom:
+# jenkins ALL=(ALL) NOPASSWD: ALL
+```
+
+---
+
+### Step 6: Create Jenkinsfile & Ansible Playbook
+
+```bash
+mkdir jenkins-ansible-lab
+cd jenkins-ansible-lab
+```
+
+**deploy.yml (Ansible Playbook)**
+
+```yaml
+- hosts: localhost
+  tasks:
+    - name: Create a file to simulate app deployment
+      file:
+        path: /tmp/app-deployed.txt
+        state: touch
+```
+
+**Jenkinsfile (Pipeline Script)**
+
+```groovy
+pipeline {
+  agent any
+  environment { ANSIBLE_HOST_KEY_CHECKING = 'False' }
+  stages {
+    stage('Run Ansible') {
+      steps { sh 'ansible-playbook deploy.yml' }
+    }
+  }
+}
+```
+
+---
+
+### Step 7: Push Project to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Initial Jenkins + Ansible pipeline"
+git branch -M main
+git remote add origin https://github.com/shan376/jenkins-ansible-lab.git
+git push -u origin main
+```
+
+*(Private repo: GitHub Personal Access Token use karo)*
+
+---
+
+### Step 8: Add GitHub Credentials to Jenkins
+
+* Jenkins Dashboard → Manage Jenkins → Credentials → Global → Add Credentials
+* Kind: Username with Password
+* Username: GitHub username
+* Password: GitHub PAT
+* ID: github-creds
+* Save
+
+---
+
+### Step 9: Create Jenkins Pipeline Job
+
+* Dashboard → New Item → Name: ansible-deploy-pipeline → Type: Pipeline
+* Pipeline → Definition: Pipeline script from SCM
+* SCM: Git, Repository URL: `https://github.com/<username>/jenkins-ansible-lab.git`
+* Credentials: github-creds
+* Branch: */main → Save
+
+---
+
+### Step 10: Run Jenkins Job (Manual Trigger)
+
+* Job Dashboard → Build Now
+* Console Output check karo
+* Terminal:
+
+```bash
+ls -l /tmp/app-deployed.txt
+```
+
+* File exist → success ✅
+
+---
+
+### Step 11: GitHub Webhook for Auto Trigger
+
+**GitHub:** Settings → Webhooks → Add Webhook
+
+* Payload URL: `http://<ec2-public-ip>:8080/github-webhook/`
+* Content type: application/json
+* Event: Just push event → Save
+
+**Jenkins:** Job → Configure → Tick “GitHub hook trigger for GITScm polling” → Save
+
+---
+
+### Step 12: Final Test
+
+* Code me koi change karo (Jenkinsfile/playbook)
+* Push GitHub → Jenkins auto-trigger → `/tmp/app-deployed.txt` updated
+
+---
+
+## 🧾 Assignment: Jenkins + Ansible + Docker (Node.js App)
+
+### Infrastructure
+
+| Instance Name  | Purpose        | Type      | Ports    |
+| -------------- | -------------- | --------- | -------- |
+| Jenkins Server | CI/CD Tool     | t2.medium | 22, 8080 |
+| App Server     | App Deployment | t2.micro  | 22, 3000 |
+
+---
+
+### Jenkins Server Setup
+
+```bash
+ssh -i "jenkins-key.pem" ubuntu@<Jenkins-EC2-IP>
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+```
+
+**Install Jenkins** (same as Step 2)
+
+**Install Git, Ansible, Docker**
+
+```bash
+sudo apt install -y git ansible docker.io
+sudo usermod -aG docker jenkins
+```
+
+*(Reboot or logout/login)*
+
+---
+
+### Target Node Setup (App Server)
+
+```bash
+sudo apt update -y
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+---
+
+### Copy PEM Key to Jenkins Server
+
+**WinSCP upload:** `/var/lib/jenkins/.ssh/deployement-server.pem`
+
+```bash
+sudo mkdir -p /var/lib/jenkins/.ssh
+sudo mv /home/ubuntu/1stdep.pem /var/lib/jenkins/.ssh/1stdep.pem
+sudo chown jenkins:jenkins /var/lib/jenkins/.ssh/1stdep.pem
+sudo chmod 600 /var/lib/jenkins/.ssh/1stdep.pem
+```
+
+---
+
+### GitHub Repo Structure
+
+```
+myrepo35/
+├── inventory.ini
+├── playbook.yml
+├── Jenkinsfile
+├── Dockerfile
+├── package.json
+├── index.js
+```
+
+**inventory.ini**
+
+```ini
+[web]
+<target-ec2-public-ip> ansible_user=ubuntu ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/deployement-server-key.pem
+```
+
+**playbook.yml**
+
+```yaml
+- name: Deploy App using Docker
+  hosts: web
+  become: true
+  tasks:
+    - name: Install Docker
+      apt: { name: docker.io, state: present, update_cache: true }
+
+    - name: Clone App Repo
+      git: { repo: https://github.com/shan376/repo1.git, dest: /home/ubuntu/app, force: yes }
+
+    - name: Build Docker Image
+      command: docker build -t myapp:latest .
+      args: { chdir: /home/ubuntu/app }
+
+    - name: Stop Running Container (if any)
+      command: docker stop myapp
+      ignore_errors: yes
+
+    - name: Run Docker Container
+      command: docker run -d -p 3000:3000 --name myapp myapp:latest
+```
+
+**Jenkinsfile**
+
+```groovy
+pipeline {
+    agent any
+    environment {
+        ANSIBLE_HOST_KEY_CHECKING = 'False'
+        SSH_DIR = "${env.WORKSPACE}/.ssh"
+    }
+    stages {
+        stage('Clone Repo') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']],
+                    userRemoteConfigs: [[ url: 'https://github.com/shan376/repo.git', credentialsId: 'put your credential id']]])
+            }
+        }
+        stage('Run Ansible') {
+            steps {
+                withCredentials([file(credentialsId: 'ansible_key', variable: 'PEM_FILE')]) {
+                    sh '''
+                        mkdir -p $SSH_DIR
+                        chmod 700 $SSH_DIR
+                        cp $PEM_FILE $SSH_DIR/app-server.pem
+                        chmod 600 $SSH_DIR/app-server.pem
+                        ssh-keyscan -H deployement-server-ip >> $SSH_DIR/known_hosts
+                        ansible-playbook -i inventory.ini playbook.yml --private-key=$SSH_DIR/app-server.pem
+                    '''
+                }
+            }
+        }
+    }
+}
+```
+
+**Dockerfile**
+
+```dockerfile
+FROM node:16
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["npm", "start"]
+```
+
+**package.json**
+
+```json
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": { "express": "^4.18.2" }
+}
+```
+
+**index.js**
+
+```javascript
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => { res.send("Hello from Jenkins + Ansible + Docker!"); });
+app.listen(3000, () => { console.log('App running on port 3000'); });
+```
+
+---
+
+### Push to GitHub
+
+```bash
+git init
+git remote add origin https://github.com/shan376/repo1.git
+git add .
+git commit -m "all file for commit"
+git branch -M main
+git push -u origin main
+```
+
+---
+
+### Jenkins Pipeline Config
+
+* New Item → Pipeline
+* SCM: Git, URL: `https://github.com/shan376/repo1.git`
+* Credentials: GitHub PAT
+* Branch: */main
+
+**Use Jenkins Credential (Secure):** Secret file → Upload `1stdep.pem` → ID: ansible_key
+
+* Trigger: GitHub hook trigger for GITScm polling
+
+---
+
+### Auto Deployment via GitHub Webhook
+
+* GitHub Settings → Webhooks
+* URL: `http://<jenkins-public-ip>:8080/github-webhook/`
+* Content type: application/json
+* Trigger: Just push event
+* Jenkins Job Config → Enable GitHub hook trigger
+
+---
+
+### Final Testing
+
+* Modify `index.js` or `package.json` → Push GitHub
+* Jenkins auto-triggers → Ansible deploys app
+* Visit App: `http://<target-ec2-ip>:3000`
+* Output: `Hello from Jenkins + Ansible + Docker!`
+

@@ -1,0 +1,123 @@
+📌  Jenkinsfile Practical Work & Assignments
+
+1. Install Java (JDK 17)
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+# Roman Urdu: Java install karo, Jenkins aur Maven ke liye zaroori hai
+
+2. Install Maven
+sudo apt install maven -y
+mvn -v
+# Roman Urdu: Maven install karo, project build aur dependency management ke liye
+
+3. Install Jenkins
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+sudo apt update
+sudo apt install jenkins -y
+# Roman Urdu: Jenkins server install karo, ye CI/CD ke liye use hoga
+
+4. Start & Enable Jenkins Service
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+# Roman Urdu: Jenkins ko start karo aur enable karo system startup ke liye
+
+5. Access Jenkins Dashboard
+http://<your-server-ip>:8080
+# Roman Urdu: Browser mein Jenkins dashboard open karo
+
+6. Install Node.js & npm
+sudo apt update
+sudo apt install nodejs -y
+sudo apt install npm -y
+node -v
+npm -v
+# Roman Urdu: Node.js aur npm install karo project run aur build ke liye
+
+7. Project Folder Setup
+mkdir my-node-app
+cd my-node-app
+npm init -y
+# Roman Urdu: Naya Node.js project banao ya existing folder open karo
+
+8. Create Jenkinsfile
+nano Jenkinsfile
+# Roman Urdu: Jenkinsfile create karo project root mein, pipeline define karne ke liye
+
+9. Jenkinsfile Content (Declarative Pipeline)
+pipeline {
+  agent any
+
+  stages {
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
+    }
+
+    stage('Run Tests') {
+      steps {
+        sh 'npm test'
+      }
+    }
+
+    stage('Build') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        echo 'Deploying the application...'
+      }
+    }
+  }
+}
+# Roman Urdu: 4 stages define ki: install, test, build, deploy
+
+10. Setup pom.xml (Maven dependencies)
+nano pom.xml
+# Roman Urdu: Maven project ka pom.xml setup karo dependencies aur build ke liye
+
+11. Setup package.json (Dummy scripts)
+nano package.json
+# Paste provided content
+# Roman Urdu: Node.js scripts define karo test aur build simulation ke liye
+
+12. Push Project to GitHub
+git init
+git remote add origin https://github.com/shan376/node-ci-pipeline.git
+git add .
+git commit -m "Initial Maven project with Jenkinsfile"
+git branch -M main
+git push -u origin main
+# Roman Urdu: Project GitHub pe push karo, Jenkins repo se connect karne ke liye
+
+13. Add GitHub Credentials in Jenkins
+Jenkins → Manage Jenkins → Credentials → (Global) → Add Credentials
+# Roman Urdu: Jenkins mein GitHub credentials add karo
+
+14. Create Jenkins Pipeline Job
+Jenkins Dashboard → New Item → Name: node-ci-pipeline → Pipeline → OK
+Pipeline section: Pipeline script from SCM, Git, Repository URL, Branch: */main, Script Path: Jenkinsfile
+# Roman Urdu: Jenkins pipeline job create karo aur GitHub repo link karo
+
+15. Setup Webhook in GitHub
+Repo → Settings → Webhooks → Add Webhook → Payload URL: http://<jenkins-ip>:8080/github-webhook/ → Content type: application/json → Event: push
+# Roman Urdu: GitHub se Jenkins ko auto trigger ke liye webhook setup karo
+
+16. Enable GitHub Trigger in Jenkins
+Pipeline Job → Configure → Build Triggers → Check "GitHub hook trigger for GITScm polling"
+# Roman Urdu: Jenkins pipeline automatic run ke liye trigger enable karo
+
+17. Real-time Testing
+README.md, index.js ya Jenkinsfile edit karo → GitHub pe push karo
+# Roman Urdu: Har push pe Jenkins automatically build, test aur deploy simulate karega
+
+✅ Assignments:
+- Jenkinsfile ke stages samajh kar Node.js project ke liye implement karo
+- Maven aur npm scripts ko Jenkins pipeline ke sath integrate karo
+- GitHub push aur webhook ke through CI/CD test karo

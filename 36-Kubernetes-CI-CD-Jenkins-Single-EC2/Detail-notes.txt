@@ -1,0 +1,174 @@
+  Kubernetes CI/CD using Jenkins (Single EC2 Instance Full Setup - with K3s)
+________________________________________
+📘 Roman Urdu Conceptual Explanation: Kubernetes CI/CD with Jenkins
+🔸 CI/CD kya hota hai?
+CI/CD ka matlab hai:
+Continuous Integration (CI): Code ko frequently test karna, build karna.
+Continuous Deployment/Delivery (CD): Code changes ko automatically deploy karna.
+Jenkins ek automation tool hai jo CI/CD pipelines chala sakta hai.
+________________________________________
+🔸 Kubernetes CI/CD kyun zaroori hai?
+Agar aapki app containerized hai (Docker image ke form mein), to usay Kubernetes cluster mein run karna best practice hai.
+Jab aap CI/CD + Kubernetes ko combine karte ho, to har code change ke baad:
+1.	Jenkins app ko build karta hai
+2.	kubectl ya Jenkins plugin se app ko automatically deploy karta hai Kubernetes cluster mein.
+Isse aapka manual kaam kam ho jata hai, aur har code change fast, testable, aur deployable ban jata hai.
+________________________________________
+🔸 Humein Jenkins aur Kubernetes ko connect karne ki zaroorat kyun hoti hai?
+Jenkins ko kubectl ka access dena parta hai taake wo cluster pe deployment kar sake.
+•	Ya to aap Jenkins mein kubeconfig file daal do.
+•	Ya plugin install karke Jenkins ko K8s se link karo.
+________________________________________
+🔁 General Life Example (Roman Urdu):
+Socho aap ek e-commerce website bana rahay ho, aur har feature (like "Add to Cart", "Search") alag developer bana raha hai.
+🔹 Jab developer code likhta hai aur GitHub pe push karta hai
+➡ Jenkins use detect karta hai
+➡ Automatically uska Docker image banata hai
+➡ YAML file se Kubernetes mein deploy karta hai.
+Is tarah har naye feature ka version auto-deploy hota hai bina kisi manual work ke.
+💡 Yehi hota hai CI/CD on Kubernetes using Jenkins.
+________________________________________
+Tools Used:
+•	Single EC2 Instance (Ubuntu 22.04 LTS)
+•	K3s (Kubernetes cluster on same instance)
+•	Jenkins (on same instance)
+•	Docker (required for Jenkins builds)
+________________________________________
+⚙️ Practical Work Lab: CI/CD to Kubernetes via Jenkins (on New EC2 Instance)
+🟢 Step 1: Launch EC2 Instance
+•	AMI: Ubuntu Server 22.04 LTS
+•	Instance Type: t2.medium (Minimum Required)
+•	Key Pair: Use existing or create new one
+•	Allow ports: 22 (SSH), 8080 (Jenkins), 30000-32767 (K8s NodePorts)
+🟢 Step 2: Initial Configuration
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget vim git unzip net-tools gnupg lsb-release \
+  software-properties-common apt-transport-https ca-certificates
+sudo hostnamectl set-hostname devops-lab-instance
+🟢 Step 3: Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
+ Step 4  Install Java & Jenkins
+Install Java (for Jenkins)
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+
+ Install Jenkins
+# Add Jenkins repo & key
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add - 
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+# Install Jenkins
+sudo apt update
+sudo apt install jenkins -y
+
+# Start & enable Jenkins
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+
+Access Jenkins Web UI
+🔗 Visit:
+http://<your-ec2-public-ip>:8080
+🔑 Unlock Jenkins:
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+➡️ Setup wizard → Install Suggested Plugins → Create Admin User → Dashboard Ready
+________________________________________
+🟢 Step 5: Install K3s
+curl -sfL https://get.k3s.io | sh - 
+sudo k3s kubectl get nodes
+________________________________________
+🛠️ Jenkins Configuration for K3s Access
+🔓 Unlock Jenkins:
+Visit http://<your-ec2-public-ip>:8080 and get admin password:
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+🔌 Install Required Plugins:
+•	Kubernetes CLI Plugin
+•	Pipeline Plugin
+🔐 Add Kubeconfig to Jenkins:
+sudo cat /etc/rancher/k3s/k3s.yaml
+1.	Copy content to a file kubeconfig
+2.	In Jenkins → Manage Credentials → Global → Add:
+o	Kind: Secret File
+o	ID: kubeconfig-id
+________________________________________
+🧪 Jenkinsfile for K3s Deployment
+pipeline {
+  agent any
+
+  environment {
+    KUBECONFIG = credentials('kubeconfig-id')
+  }
+
+  stages {
+    stage('Deploy to Kubernetes') {
+      steps {
+        sh 'kubectl apply -f k8s-deployment.yaml'
+      }
+    }
+  }
+}
+________________________________________
+📄 Kubernetes Deployment File (k8s-deployment.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  type: NodePort
+  selector:
+    app: myapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+
+Push Project to GitHub
+📦 Initialize Git Repo & Push
+git init
+git add .
+git commit -m "Initial Jenkins + Ansible pipeline"
+git branch -M main
+git remote add origin https://github.com/shan376/jenkins-ansible-lab.git
+git push -u origin main
+🔐 If private repo: Use GitHub Personal Access Token
+________________________________________
+🧪 Assignment Lab: CI/CD NGINX Deployment from Jenkins to K3s (New EC2)
+Hint : same work as above 
+Step-by-Step:
+1.	Create new EC2 (Ubuntu 22.04)
+2.	Repeat Docker + Jenkins + K3s setup
+3.	Clone GitHub repo with Jenkinsfile and k8s-deployment.yaml
+4.	Create Jenkins pipeline job from GitHub repo
+5.	Upload k3s.yaml as Jenkins secret file (ID = kubeconfig-id)
+6.	Run pipeline → Confirm deployment:
+sudo k3s kubectl get pods
+sudo k3s kubectl get deployments
+sudo k3s kubectl get svc
+7.	Visit app: http://<EC2-Public-IP>:30080
+✅ App should be running via CI/CD pipeline
+________________________________________

@@ -1,0 +1,117 @@
+ Terraform Basics with IAM User and Policy Setup (Full Lab)
+________________________________________
+📘 Conceptual Understanding
+Terraform Kya Hai?
+Terraform ek Infrastructure as Code (IaC) tool hai jise HashiCorp ne banaya hai. Iska matlab hai ke aap apni cloud infrastructure — jaise servers (EC2 instances), networks (VPC), storage (S3 buckets) — ko code ki tarah likh kar automate kar sakte hain.
+Aap manually AWS console ya kisi aur cloud provider ki website pe jaa kar infrastructure create karne ki bajaye, Terraform configuration files (jaise main.tf) likhte hain. Yeh files declarative hoti hain, yani aap specify karte hain kya chahiye, Terraform samajhta hai aur usko bana deta hai.
+________________________________________
+🧠 Kyun Zaroori Hai Terraform?
+•	Automation: Bar bar infrastructure manually banana waqt zaya karta hai. Terraform se infrastructure code likh ke repeatable aur consistent tarike se bana sakte hain.
+•	Version Control: Code hone ki wajah se aap infrastructure changes ko Git jaise tools se track kar sakte hain, team ke saath share kar sakte hain, aur purani configurations pe wapas bhi ja sakte hain.
+•	Error Kam: Manual GUI se mistakes zyada hoti hain. Code se infrastructure standardize hota hai, jisme errors kam hoti hain.
+•	Multi-cloud Support: Terraform sirf AWS nahi, balki Azure, Google Cloud, aur dusre providers ko bhi support karta hai. Aap same syntax se multiple providers ko manage kar sakte hain.
+•	Repeatability: Aap bar bar ek hi environment bina confusion ke create kar sakte hain.
+________________________________________
+🔁 Real-Life Example:
+Sochiye aap ek company ke DevOps engineer hain. Aapko apne team ke liye development aur testing ke liye 3 EC2 instances chahiye. Agar aap ye sab manually AWS Console se create karte to:
+•	Har baar instance create karna time-consuming hota.
+•	Galti se alag configurations lag sakti hain.
+•	Team members ke beech coordination mushkil ho jata.
+Ab Terraform ke zariye aap sirf ek baar configuration file banate hain, jisme specify kar dete hain ke 3 instances chahiye hain, kis region mein, kis type ke, etc. Phir:
+terraform apply
+run karte hi, Terraform aapke liye wo 3 EC2 instances banata hai. Jab aapko instances delete karne hain to:
+terraform destroy
+se sab clean ho jata hai.
+Is tarah aapko har baar console mein jaane ki zarurat nahi, infrastructure repeatable aur trackable hota hai.
+________________________________________
+⚙️ Practical Lab: Complete Terraform Setup with IAM User Creation and Policy Attach
+________________________________________
+🟢 Step 1: New EC2 instance launch karo (Ubuntu 22.04 LTS)
+•	SSH access ke liye ports open karo (22)
+•	Instance type: t2.micro
+________________________________________
+🟢 Step 2: AWS CLI Manual Install karo (Agar apt install nahi hota)
+sudo apt update
+sudo apt install unzip -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version   # check karo ke install ho gaya ya nahi
+________________________________________
+🟢 Step 3: IAM User aur Policy Setup (AWS Console ya CLI se)
+Agar AWS Console use karte ho to:
+•	AWS Console → IAM → Users → Add user
+•	Username: terraform-user (ya koi bhi)
+•	Access type: Programmatic access
+•	Next: Permissions → Attach existing policies directly → Select AmazonEC2FullAccess
+•	Finish aur Access Key aur Secret Key save kar lo
+CLI se IAM user create karna complex hai, to Console se karna easy hai
+________________________________________
+🟢 Step 4: AWS CLI Configure karo apne EC2 instance par
+aws configure
+Yahan enter karo:
+•	AWS Access Key ID (jo IAM user ke liye generate kiya)
+•	AWS Secret Access Key
+•	Default region (e.g., us-west-1 ya jis region mein instance banana hai)
+•	Output format (e.g., json)
+________________________________________
+🟢 Step 5: Terraform Install karo
+sudo apt update
+sudo apt install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update
+sudo apt install terraform -y
+terraform -version
+________________________________________
+🟢 Step 6: Terraform Configuration File banao
+nano main.tf
+Isme ye code daalo (region apne hisaab se set karo, jaise us-west-1):
+provider "aws" {
+  region     = "us-west-1"          # apna region yahan specify karo
+  access_key = "YOUR_ACCESS_KEY"    # IAM user ka Access Key
+  secret_key = "YOUR_SECRET_KEY"    # IAM user ka Secret Key
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0abcdef1234567890"  # apne region ka valid AMI ID lagao
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "TerraformInstance"
+  }
+}
+Note:
+•	ami ID aapko AWS Console ya CLI se apne region ke liye nikalni hogi.
+Ubuntu 20.04 ke liye AMI ID nikalne ka command
+aws ec2 describe-images \
+    --owners 099720109477 \
+    --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*" \
+    --query 'Images[*].[ImageId,Name]' \
+    --output table \
+    --region us-east-2
+________________________________________
+🟢 Step 7: Terraform Commands chalayein
+terraform init    # initialize karo Terraform workspace
+terraform plan    # jo changes hone wale hain wo check karo
+terraform apply   # actual resource create karo, jab prompt aaye to 'yes' type karo
+________________________________________
+🧰 Common Errors aur Unka Solution
+Error Message	Reason	Solution
+InvalidAMIID.NotFound	AMI ID galat ya region mismatch	Sahi region ka AMI ID use karo, AWS Console ya CLI se nikaalo
+UnauthorizedOperation	IAM user ke paas required permissions nahi	IAM user ko AmazonEC2FullAccess ya required policy do
+Package awscli is not available	Ubuntu repo mein awscli package nahi mila	AWS CLI manual installation karo zip se
+list index out of range (describe-instances command)	Region mismatch ya instance nahi us region mein	CLI region check karo, ya correct region specify karo
+________________________________________
+🧾 Summary & Tips
+•	Hamesha Terraform config aur AWS CLI dono mein same AWS region use karo.
+•	IAM user ki policies properly attach karo warna UnauthorizedOperation error aayegi.
+•	AMI ID region-specific hoti hai, isliye sahi AMI ID hi use karo.
+•	Terraform ke commands: init, plan, apply sequentially chalana hai.
+________________________________________
+📚 Assignment(All ready done in above practical work)
+•	Naya IAM user create karo jisme EC2 access permission ho
+•	Apne Terraform main.tf file mein IAM user ki keys use karo
+•	Naya EC2 instance deploy karo apne desired region mein
+•	AWS Console pe jaake verify karo instance bana hai ya nahi
+•	Agar errors aaye, to unka reason samjho aur note karo

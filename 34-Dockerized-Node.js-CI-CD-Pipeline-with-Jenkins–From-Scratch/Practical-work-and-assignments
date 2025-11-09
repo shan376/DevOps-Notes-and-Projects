@@ -1,0 +1,159 @@
+Practical Work + Assignments – Docker in Jenkins (From Scratch)
+______________________________________
+✅ Step 1: Launch New EC2 Instance (Ubuntu)
+- AWS Console se Ubuntu 22.04 LTS instance launch karo, t2.micro free tier use karo.
+- Security group mein SSH(22), Jenkins(8080) aur App(3000) ports allow karo.
+________________________________________
+✅ Step 2: Connect EC2 via SSH
+- SSH se connect karo:
+ssh -i "your-key.pem" ubuntu@your-public-ip
+________________________________________
+✅ Step 3: Install Java (for Jenkins)
+- Java install karo taake Jenkins run ho sake:
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+________________________________________
+✅ Step 4: Install Jenkins
+- Jenkins repo aur key add karo:
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+- Jenkins install aur start karo:
+sudo apt update
+sudo apt install jenkins -y
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+- Jenkins URL check karo: http://your-public-ip:8080
+- Initial admin password dekho:
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+________________________________________
+✅ Step 5: Install Docker in Jenkins Server
+- Docker install karo aur enable karo:
+sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+________________________________________
+✅ Step 6: Add Jenkins User to Docker Group
+- Jenkins ko Docker commands run karne ka permission do:
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+________________________________________
+✅ Step 7: Create Node.js Project with Dockerfile
+- Project folder banao aur npm init karo:
+mkdir myapp && cd myapp
+npm init -y
+- index.js file create karo aur HTTP server code add karo:
+nano index.js
+📝 Code:
+const http = require('http');
+http.createServer((req, res) => {
+  res.end('Hello from Dockerized Node.js App!');
+}).listen(3000);
+________________________________________
+✅ Step 8: Create Multi-Stage Dockerfile
+- Dockerfile banao aur multi-stage build define karo:
+nano Dockerfile
+📝 Code:
+# Stage 1 - Build
+FROM node:16 as builder
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build || echo "No build script"
+
+# Stage 2 - Final
+FROM node:16
+WORKDIR /app
+COPY --from=builder /app .
+EXPOSE 3000
+CMD ["node", "index.js"]
+________________________________________
+✅ Step 9: Create Jenkinsfile for Docker Pipeline
+- Jenkinsfile create karo:
+nano Jenkinsfile
+📝 Code:
+pipeline {
+  agent any
+
+  stages {
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t myapp:latest .'
+      }
+    }
+
+    stage('Run Container') {
+      steps {
+        sh 'docker run -d -p 3000:3000 myapp:latest'
+      }
+    }
+  }
+}
+________________________________________
+✅ Step 10: package.json
+- package.json file create karo aur scripts define karo:
+nano package.json
+📝 Code:
+{
+  "name": "my-node-app",
+  "version": "1.0.0",
+  "description": "Simple Node.js app for Jenkins CI/CD testing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Dummy test passed\" && exit 0",
+    "build": "echo \"Build successful\""
+  },
+  "author": "Shan",
+  "license": "ISC",
+  "dependencies": {}
+}
+________________________________________
+✅ Step 11: Push to GitHub
+- GitHub repo create karo aur push karo:
+git init
+git remote add origin https://github.com/yourusername/docker-in-jenkins.git
+git add .
+git commit -m "Initial commit with Docker and Jenkinsfile"
+git branch -M main
+git push -u origin main
+________________________________________
+✅ Step 12: Configure Jenkins Pipeline Job
+- Jenkins dashboard se new pipeline job create karo aur Git SCM select karo.
+- Repository URL aur branch set karo, Script path Jenkinsfile define karo.
+________________________________________
+✅ Step 13: Enable GitHub Trigger
+- Jenkins job configure karo aur GitHub hook trigger tick karo.
+________________________________________
+✅ Step 14: Setup Webhook in GitHub
+- GitHub repo settings → Webhooks → Add webhook:
+Payload URL: http://<jenkins-ip>:8080/github-webhook/
+Content type: application/json
+Events: push event
+- Active save karo.
+- Agar build error aaye due to port 3000, running container stop karo:
+docker ps
+docker stop <container_id>
+________________________________________
+✅ Step 15: Test the Pipeline
+- Project edit aur push karo → Jenkins automatically:
+1. Docker image build
+2. Container launch
+- Browser me check karo: http://<your-ec2-ip>:3000
+→ "Hello from Dockerized Node.js App!" show hoga
+________________________________________
+🔁 Bonus Commands for Docker Debugging
+docker ps              # Running containers
+docker stop <id>       # Stop container
+docker rm <id>         # Remove container
+docker rmi myapp:latest  # Remove image
+________________________________________
+✅ Final Roman Urdu Summary
+- EC2 launch kiya (Ubuntu)
+- Jenkins install kiya
+- Docker install kiya aur Jenkins ko Docker group mein dala
+- Node.js app banayi
+- Multi-stage Dockerfile aur Jenkinsfile likha
+- GitHub se Jenkins pipeline connect ki
+- App Docker ke zariye deploy ho gayi CI/CD se
+________________________________________

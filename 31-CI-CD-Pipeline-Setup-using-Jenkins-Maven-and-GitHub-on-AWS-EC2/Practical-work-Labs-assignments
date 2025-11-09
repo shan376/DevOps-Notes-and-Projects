@@ -1,0 +1,362 @@
+✅ **Topic 31: CI/CD Concepts (Full Practical Work + Assignments)**
+
+### 🧩 **Practical Work: CI/CD Setup & Execution**
+
+**Step 1: EC2 Instance Launch (AWS)**
+EC2 Ubuntu instance launch kiya for Jenkins environment.
+
+```bash
+AMI: Ubuntu 22.04  
+Type: t2.medium  
+Ports: 22 (SSH), 8080 (Jenkins)
+```
+
+🗣 Roman Urdu:
+"EC2 instance launch kiya jisme Jenkins aur Maven run karne ke liye required ports open kiye."
+
+---
+
+**Step 2: Connect to EC2 Instance**
+SSH se EC2 connect hua:
+
+```bash
+ssh -i "key.pem" ubuntu@<EC2-Public-IP>
+```
+
+🗣 Roman Urdu:
+"EC2 instance pe SSH se connect hue taake Jenkins aur tools install kar sakein."
+
+---
+
+**Step 3: Install Required Tools (Git, Java, Maven, Jenkins)**
+Commands:
+
+```bash
+sudo apt update
+sudo apt install git -y
+sudo apt install openjdk-17-jdk -y
+sudo apt install maven -y
+```
+
+Then install Jenkins:
+
+```bash
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+sudo apt update
+sudo apt install jenkins -y
+```
+
+🗣 Roman Urdu:
+"Git code ke liye, Java aur Maven build ke liye aur Jenkins automation ke liye install kiya."
+
+---
+
+**Step 4: Start Jenkins & Allow Port**
+
+```bash
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+```
+
+In AWS → Security Group → Inbound Rules → Add Port 8080
+🗣 Roman Urdu:
+"Jenkins ko start kiya aur browser access ke liye port 8080 open kiya."
+
+---
+
+**Step 5: Access Jenkins in Browser**
+Go to:
+
+```
+http://<EC2-Public-IP>:8080
+```
+
+Get admin password:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+🗣 Roman Urdu:
+"Browser se Jenkins dashboard open kiya aur setup complete kiya."
+
+---
+
+**Step 6: Install Jenkins Plugins & Complete Setup**
+
+1. Admin password paste kiya
+2. Suggested plugins install kiye
+3. Admin user create kiya
+
+🗣 Roman Urdu:
+"Plugins install karne ke baad Jenkins dashboard ready hogaya."
+
+---
+
+**✅ Environment Ready Commands Check**
+
+```bash
+git --version  
+java -version  
+mvn -v  
+sudo systemctl status jenkins
+```
+
+🗣 Roman Urdu:
+"Sab tools verify kiye ke properly install ho gaye."
+
+---
+
+### ⚙️ **Step 7: Create Java Maven Project with JUnit**
+
+**Folder Structure:**
+
+```
+sample-java-app/
+├── pom.xml
+└── src/
+    ├── main/java/HelloWorld.java
+    └── test/java/HelloWorldTest.java
+```
+
+**Create Project:**
+
+```bash
+mkdir -p sample-java-app/src/{main/java,test/java}
+cd sample-java-app
+```
+
+**HelloWorld.java**
+
+```bash
+nano src/main/java/HelloWorld.java
+```
+
+Paste:
+
+```java
+public class HelloWorld {
+  public static String greet() {
+    return "Hello, DevOps!";
+  }
+  public static void main(String[] args) {
+    System.out.println(greet());
+  }
+}
+```
+
+**HelloWorldTest.java**
+
+```bash
+nano src/test/java/HelloWorldTest.java
+```
+
+Paste:
+
+```java
+import org.junit.Test;
+import static org.junit.Assert.*;
+public class HelloWorldTest {
+  @Test
+  public void testGreet() {
+    assertEquals("Hello, DevOps!", HelloWorld.greet());
+  }
+}
+```
+
+**pom.xml**
+
+```bash
+nano pom.xml
+```
+
+Paste:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.shan376</groupId>
+  <artifactId>sample-project</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
+```
+
+**Run Build & Test:**
+
+```bash
+mvn clean install
+mvn test
+```
+
+🗣 Roman Urdu:
+"Code compile aur test run kiya taake ensure ho ke sab sahi kaam kar raha hai."
+
+---
+
+### 🧩 **Step 8: Push Project to GitHub**
+
+```bash
+git init
+git add .
+git commit -m "Initial Commit"
+git remote add origin https://github.com/<username>/sample-java-app.git
+git push -u origin master
+```
+
+🗣 Roman Urdu:
+"Code ko GitHub repo par push kiya jisse Jenkins pipeline usko access kar sake."
+
+---
+
+### ⚙️ **Step 9: Create Jenkinsfile (Pipeline Script)**
+
+```bash
+nano Jenkinsfile
+```
+
+Paste:
+
+```groovy
+pipeline {
+  agent any
+  stages {
+    stage('Clone') {
+      steps { git 'https://github.com/<username>/sample-java-app.git' }
+    }
+    stage('Build') {
+      steps { sh 'mvn clean compile' }
+    }
+    stage('Test') {
+      steps { sh 'mvn test' }
+    }
+    stage('Package') {
+      steps { sh 'mvn package' }
+    }
+    stage('Deploy') {
+      steps {
+        sh 'mkdir -p /home/ubuntu/dev-deploy'
+        sh 'cp target/*.jar /home/ubuntu/dev-deploy/'
+      }
+    }
+  }
+}
+```
+
+Push Jenkinsfile:
+
+```bash
+git add Jenkinsfile
+git commit -m "Add Jenkinsfile"
+git push
+```
+
+🗣 Roman Urdu:
+"Jenkinsfile likha jisme build, test aur deploy ke steps define kiye."
+
+---
+
+### 🧪 **Step 10: Create Pipeline Job in Jenkins**
+
+1. Jenkins Dashboard → **New Item**
+2. Enter Name: `CI-CD-Sample-Pipeline`
+3. Select **Pipeline → OK**
+4. Scroll down →
+
+   * **Definition:** Pipeline script from SCM
+   * **SCM:** Git
+   * **Repository URL:** Your GitHub Repo
+   * **Branch:** */master
+   * **Script Path:** Jenkinsfile
+5. Click **Save**
+
+🗣 Roman Urdu:
+"Jenkins mein new pipeline job banayi jo Jenkinsfile ke steps follow kare."
+
+---
+
+### 🧩 **Step 11: Run Jenkins Pipeline**
+
+Click **Build Now**
+Stages run honge:
+
+1. Clone
+2. Build
+3. Test
+4. Package
+5. Deploy
+
+🗣 Roman Urdu:
+"Pipeline automatically GitHub se code le kar pura CI/CD process complete karti hai."
+
+---
+
+### ✅ **Step 12: Verify Deployment**
+
+```bash
+ls /home/ubuntu/dev-deploy/
+```
+
+Expected Output:
+
+```
+sample-java-app-1.0-SNAPSHOT.jar
+```
+
+Run app manually:
+
+```bash
+cd /home/ubuntu/dev-deploy/
+java -cp sample-java-app-1.0-SNAPSHOT.jar HelloWorld
+```
+
+Output:
+
+```
+Hello, DevOps!
+```
+
+🗣 Roman Urdu:
+".jar file successfully deploy ho gayi aur run karne par output mila ‘Hello, DevOps!’"
+
+---
+
+## 🎯 **Assignment**
+
+**Assignment 1:**
+Explain this CI/CD pipeline step-by-step in your own words (Roman Urdu preferred).
+
+**Assignment 2:**
+Create a Jenkins pipeline job with your GitHub project and verify `.jar` deployment on EC2.
+
+🧠 **Roman Urdu Task Summary:**
+"Ye assignment aapko real CI/CD ka flow samjhata hai — GitHub se code push hone ke baad Jenkins automatically code build, test aur deploy karta hai."
+
+---
+
+✅ **Final Checklist**
+
+| Task                                | Done |
+| ----------------------------------- | ---- |
+| EC2 with Ubuntu                     | ✅    |
+| Git, Java, Maven, Jenkins Installed | ✅    |
+| Java Maven Project Created          | ✅    |
+| Code Pushed to GitHub               | ✅    |
+| Jenkinsfile Added                   | ✅    |
+| Jenkins Pipeline Job Created        | ✅    |
+| Pipeline Successfully Ran           | ✅    |
+| .jar File Verified                  | ✅    |
+
+---
+
+**🧾 Final Roman Urdu Recap:**
+"Humne ek complete CI/CD pipeline banayi jisme GitHub par code push hone ke baad Jenkins automatically build, test aur deploy karta hai. Yehi real-world DevOps ka core process hai."
+
