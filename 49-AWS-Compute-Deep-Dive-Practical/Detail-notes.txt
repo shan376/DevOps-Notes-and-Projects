@@ -1,0 +1,284 @@
+📘 AWS Compute Deep Dive 
+( From Scratch)
+________________________________________
+🚀 1. Real-Life Example se Start – Socho Aise:
+Tumhara ek idea hai — ek chhoti si "To-Do List" app banani hai.
+Ab sawal ye hai:
+"Is app ko host kaha karein? Kya manually server uthayein? Ya koi aisi service ho jo sab kuch manage kar de?"
+Yahi kaam karne ke liye AWS ke Compute Services hume options deti hain:
+•	Manual control chahiye? 👉 EC2
+•	Auto serverless chahiye? 👉 Lambda
+•	Simple app deploy karni hai fast? 👉 Elastic Beanstalk
+________________________________________
+☁️ 2. Compute Services in AWS – Kya Hain Ye?
+Compute services ka matlab hai:
+Aapko apne app, website, ya function ko run karne ke liye processing power (CPU, RAM) chahiye hoti hai — aur AWS aapko ye sab cloud mein deta hai.
+________________________________________
+🖥️ 3. EC2 (Elastic Compute Cloud)
+🔍 Kya hai?
+EC2 AWS ka virtual server hai. Ye ek machine hai jo aap internet par rent par lete ho.
+📦 Features:
+•	Aap apna OS install kar sakte ho
+•	App manually install kar sakte ho
+•	SSH access milta hai
+•	Full control hota hai
+🧾 Example:
+Jaise aap ne ek EC2 server banaya Ubuntu OS ke saath, usme Apache install kiya aur website host kar di.
+🛠️ Use Cases:
+•	Web Hosting
+•	Database server
+•	Jenkins ya Docker install karna
+•	Custom apps chalana
+________________________________________
+⚡ 4. AWS Lambda
+🔍 Kya hai?
+Lambda ek serverless compute service hai — jisme aap code likhte ho, aur AWS automatically run karta hai jab uski zarurat ho.
+📦 Features:
+•	Koi server setup nahi
+•	Pay per execution (jitni dafa code chala, utna paisa)
+•	Trigger-based model (API call, S3 upload, etc.)
+🧾 Example:
+Aap ne ek Lambda function banaya jo image compress karta hai jab bhi koi S3 bucket mein image upload ho.
+🔄 Real-World Analogy:
+Jaise ghar mein geyser tab chalta hai jab paani ka tap on hota hai, waise hi Lambda tab chalta hai jab koi trigger aata hai.
+________________________________________
+
+🚀 5. AWS Elastic Beanstalk (EB)
+🔍 Kya hai?
+EB ek platform as a service (PaaS) hai jisme aap sirf apni app upload karte ho — baaki sab AWS manage karta hai (server, scaling, monitoring).
+📦 Features:
+•	Zero configuration needed
+•	Auto provisioning of EC2, Load Balancer, Scaling, etc.
+•	CI/CD support
+•	App health monitoring
+🧾 Example:
+Aap ne ek Python Flask app .zip ya GitHub se EB pe deploy kar di — aur woh khud server banata, app run karta, URL deta.
+✅ Use Cases:
+•	Simple web apps
+•	REST APIs
+•	Staging environments
+
+✅ Updated and Final Notes – AWS Elastic Beanstalk Flask App Deployment (Zero Error Version)
+________________________________________
+🎯 Target:
+Deploy a Python Flask application using Elastic Beanstalk with full working configuration, without any health red errors.
+________________________________________
+🔧 Part 1: EC2 Instance Setup (Ubuntu 20.04)
+✅ Step 1: Launch EC2 Instance
+•	OS: Ubuntu 20.04 LTS
+•	Instance Type: t2.micro
+•	Security Group Rules:
+o	SSH (Port 22) – My IP
+o	HTTP (Port 80) – Anywhere
+o	HTTPS (Port 443) – (optional for SSL)
+________________________________________
+🖥️ Part 2: SSH Access & Basic Tools Install
+ssh -i your-key.pem ubuntu@<ec2-public-ip>
+sudo apt update && sudo apt install -y git python3-pip awscli
+________________________________________
+🧰 Part 3: AWS CLI Configuration
+aws configure
+Step-by-Step: Access Key & Secret Key kaise laani hai
+ IAM User banao (agar pehle nahi banaya)
+1.	AWS Console ➝ IAM ➝ Users
+2.	Click “Add user”
+3.	Username: e.g. eb-cli-user
+4.	Access Type: ✅ Programmatic access
+5.	Permissions:
+o	Attach existing policies → Select AdministratorAccess (for lab/demo)
+6.	Create user ➝ ✅phir es user py click kro aur credential py click kr k secuirity mn new keys generate krlo aur copy krlo ek hi bar show hoti hn es tarah Access Key & Secret Key mil jayengi!
+________________________________________
+🐍 Part 4: Create Flask App Project Locally
+mkdir flaskapp && cd flaskapp
+
+nano application.py
+Paste this code:
+from flask import Flask
+application = Flask(__name__)
+
+@application.route('/')
+def home():
+    return "Hello from AWS Elastic Beanstalk!"
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get('PORT', 8080))
+    application.run(host='0.0.0.0', port=port)
+________________________________________
+📦 Part 5: Create Required Files
+echo "flask" > requirements.txt
+echo "gunicorn" >> requirements.txt
+echo "python-3.9" > runtime.txt
+👉 Flask = web framework
+👉 Gunicorn = production server for Python apps
+👉 runtime.txt = Elastic Beanstalk ko batata hai kaunsa Python version use karna hai
+________________________________________
+📦 Part 6: Elastic Beanstalk CLI Install
+sudo apt install python3-pip -y
+pip3 install --upgrade --user awsebcli
+echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# Confirm CLI installed:
+eb --version
+________________________________________
+🚀 Part 7: Initialize Elastic Beanstalk
+eb init -p python-3.9 flaskapp --region us-east-1
+# App name: flaskapp
+# SSH key: yes (use existing or create new)
+________________________________________
+🌐 Part 8: Create Environment & Deploy
+eb create flask-env
+🕒 Wait for environment to launch. This takes a few minutes.
+________________________________________
+🔍 Part 10: Check Live URL
+eb open
+
+✅ You should see: “Hello from AWS Elastic Beanstalk!”
+
+
+🌐 App URL:
+You can now open your Flask app using:
+http://flask-env.eba-ubuhpvmw.us-east-1.elasticbeanstalk.com/
+Try opening it in your browser. You should see your homepage (even if it's a simple "Hello, World!" message)
+________________________________________
+🔧 Part 11: Check Logs (If Health = RED)
+eb logs
+Check for:
+•	Flask/Gunicorn not installed? 👉 Fix requirements.txt
+•	Port not open? 👉 Use 0.0.0.0 in application.run
+•	Wrong Python version? 👉 Adjust runtime.txt
+•	IAM permission error? 👉 Use full AdministratorAccess for test
+________________________________________
+🧹 Part 12: Clean Up (If Needed)
+If environment breaks or crashes:
+eb terminate flask-env --force
+eb create flask-env
+________________________________________
+
+🎯 Perfect Final Checklist:
+✔️ Flask App code in application.py
+✔️ requirements.txt = flask + gunicorn
+✔️ runtime.txt = python-3.9
+✔️ EB CLI Installed
+✔️ eb init + eb create done
+✔️ Health = ✅ Green
+✔️ Output on browser = Success!
+________________________________________
+🎁 Bonus Tip: Enable Logging in App for Debugging
+Add inside your app:
+import logging
+logging.basicConfig(level=logging.DEBUG)
+________________________________________
+📌 Conclusion
+•	Elastic Beanstalk gives auto scaling + EC2 + monitoring without config hassle.
+•	Gunicorn is mandatory for production.
+•	Health RED issues = mostly config ya dependency issue hoti hai.
+•	Yeh notes follow karke 100% successful deployment hoga, no confusion.
+________________________________________
+🛠 Step-by-Step Guide to Link Flask App to GitHub
+________________________________________
+✅ Step a: Navigate to Project Directory
+cd /home/ubuntu/flaskapp
+________________________________________
+✅ Step b: Initialize Git
+If .git is not initialized yet:
+git init
+________________________________________
+✅ Step c: Add Remote GitHub Repo
+git remote add origin https://github.com/shan376/flaskapp.git
+To confirm:
+git remote -v
+You should see:
+origin  https://github.com/shan376/flaskapp.git (fetch)
+origin  https://github.com/shan376/flaskapp.git (push)
+________________________________________
+✅ Step d: Add All Project Files
+git add .
+________________________________________
+✅ Step e: Commit the Project
+git commit -m "Initial Flask app for Elastic Beanstalk deployment"
+________________________________________
+✅ Step f: Push to GitHub (First Time)
+If your GitHub repo is empty or you want to overwrite what's already there:
+git branch -M main
+git push -u origin main
+⚠️ If it rejects due to conflicts (because your GitHub repo already has some files), use:
+git push -u origin main --force
+________________________________________
+📦 Step g: Confirm Everything is Pushed
+Go to:
+🔗 https://github.com/shan376/flaskapp
+✅ You should see:
+•	application.py or app.py
+•	requirements.txt
+•	runtime.txt
+•	Procfile
+•	templates/, static/ folders if present
+________________________________________
+🧹 Optional Cleanup: Add .gitignore
+To avoid pushing cache or secret files:
+nano .gitignore
+Paste this content:
+__pycache__/
+*.pyc
+*.log
+.env
+.venv/
+Then commit:
+git add .gitignore
+git commit -m "Add .gitignore to exclude temp files"
+git push
+________________________________________
+
+Assignment 
+AWS Lambda: Create & Test Your First Function (Python 3.9)
+1. Go to Lambda Console
+•	Open the AWS Management Console.
+•	Search for Lambda and open the Lambda service page.
+2. Click Create function
+3. Choose Author from scratch
+4. Fill in Basic Info:
+•	Function name: HelloLambda (or any name you like)
+•	Runtime: Select Python 3.9
+•	Architecture: Choose x86_64 (default)
+•	Execution Role: Choose Create a new role with basic Lambda permissions (default)
+5. Click Create function button
+________________________________________
+6. Add your function code in the inline editor (default lambda_function.py):
+def lambda_handler(event, context):
+    return {
+        'statusCode': 200,
+        'body': 'Hello from AWS Lambda!'
+    }
+________________________________________
+7. Click Deploy to save changes
+________________________________________
+8. Test your Lambda function
+•	Click Test button on top.
+•	Configure test event: select "Hello World" template or keep default.
+•	Give test event a name (e.g., TestHello).
+•	Click Create.
+•	Now click Test again to invoke the function.
+9. Check the output:
+You should see:
+{
+  "statusCode": 200,
+  "body": "Hello from AWS Lambda!"
+}
+________________________________________
+10. (Optional) Set up Function URL to call it from a browser or app
+•	In Configuration > Function URL, create a URL.
+•	Set Auth type to None (for public access).
+•	Save and open the URL in your browser — you’ll see the "Hello from AWS Lambda!" message.
+________________________________________
+Summary:
+•	You wrote a simple Lambda function that returns a message.
+•	You tested it via the console.
+•	You can optionally expose it via a public URL.
+________________________________________
+🧠 Full topic Summary – Ek Nazar Mein
+•	EC2 = Full control wala cloud server
+•	Lambda = Serverless function-based computing
+•	Elastic Beanstalk = Fully managed app deploy platform
+Har use-case ke liye alag compute service hoti hai. Agar control chahiye toh EC2, agar sirf app chalani hai toh Beanstalk, aur agar kuch chhota aur automated kaam hai toh Lambda best hai.

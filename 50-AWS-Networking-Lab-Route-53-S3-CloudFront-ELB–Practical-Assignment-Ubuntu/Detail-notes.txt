@@ -1,0 +1,297 @@
+📘 AWS Networking (Route 53, S3, ELB, CloudFront)
+From Scratch, with Real-World Explanation
+________________________________________
+🚀 1. Real-Life Analogy – Samjho Aise:
+Socho tumhara ek startup hai jisme tum ek website launch karna chahte ho jiska domain hai:
+www.mytaskapp.com
+Ab tum chahte ho:
+•	Ye website S3 bucket se serve ho
+•	Domain Route 53 handle kare
+•	Traffic worldwide fast aaye via CloudFront
+•	Agar backend EC2 ho to Load Balancer se traffic distribute ho
+Is sab ka setup AWS Networking services se hota hai.
+________________________________________
+🌐 2. AWS Networking Components (Overview)
+Component	Use Case
+Route 53	DNS Management (Domain to IP Mapping)
+S3 + Static	Host static websites
+CloudFront	CDN (Content Delivery Network)
+ELB (Load Balancer)	Distribute traffic to EC2 instances
+________________________________________
+🔍 3. Route 53 – Domain Name System
+🔎 Kya hai?
+Route 53 AWS ka DNS service hai jisme aap domain name ko IP address se link karte ho.
+🔎 Use Case:
+•	Domain khareedna
+•	Custom domain ko EC2, S3, CloudFront se jodna
+📊 Record Types:
+•	A Record: Directly points to IP
+•	CNAME: Points to another domain (e.g. CloudFront)
+•	Alias: AWS-specific record (recommended)
+💡 Roman Urdu:
+DNS ek address book hota hai jahan aapka domain name actual server IP se map hota hai.
+________________________________________
+🌐 Domain Kaise Kharidein (Buy a Domain via Route 53)
+✅ Step-by-Step:
+1.	Go to AWS Console → Route 53 → Registered Domains
+2.	Click Register Domain
+3.	Search for your desired domain name (e.g., mytaskapp.com)
+4.	Check availability and select
+5.	Add domain to cart (~$12/year pricing for .com)
+6.	Enter contact details (mandatory for domain registration)
+7.	Confirm and proceed to payment via linked credit/debit card
+8.	Wait for confirmation email (AWS will auto-configure the Hosted Zone)
+💡 Tip: Registered domains automatically get a public hosted zone in Route 53
+________________________________________
+🏧 4. S3 Static Website Hosting
+🔎 Use Case:
+Static files (HTML, CSS, JS) ko host karna bina kisi server ke.
+📆 Step-by-step:
+1.	AWS Console → S3 → Create Bucket: mytaskapp.com
+2.	Enable static website hosting
+3.	Upload files (index.html, error.html)
+4.	Permissions → Bucket policy to allow public access
+5.	Note the static website endpoint URL
+🔎 Example:
+http://mytaskapp.com.s3-website-us-east-1.amazonaws.com
+________________________________________
+🌎 5. CloudFront – CDN (Speed + Caching)
+🔎 Kya hai?
+CloudFront AWS ka Content Delivery Network hai jo world-wide caching points use karta hai.
+🔎 Use Case:
+•	Global performance improvement
+•	HTTPS/SSL enable karna without touching S3
+📆 Setup:
+1.	Create CloudFront Distribution
+2.	Origin domain: Your S3 static site URL
+3.	Optional: Add custom domain (Route 53)
+4.	SSL support via AWS Certificate Manager
+________________________________________
+🚧 6. ELB (Elastic Load Balancer)
+🔎 Kya hai?
+Load Balancer traffic ko multiple EC2 instances me balance karta hai — high availability aur fault tolerance ke liye.
+📆 Steps:
+1.	Create 2 EC2 instances (Apache/nginx installed)
+2.	Launch Load Balancer (Application Load Balancer)
+3.	Register EC2 instances with LB
+4.	Note down the LB DNS URL
+🔎 Example:
+http://my-load-balancer-123456.us-east-1.elb.amazonaws.com
+________________________________________
+
+
+Practical Lab: 
+Configure DNS with Route 53 aur S3
+Objective
+S3 bucket me host ki gayi static website ko apne custom domain (GoDaddy se khareeda hua) ke saath link karna, AWS Route 53 ke DNS configuration ke zariye.
+________________________________________
+Steps
+Step 1: Prepare Your Domain
+•	Aapke paas GoDaddy ya kisi aur registrar se khareeda hua domain hona chahiye (e.g., launchshan.site)
+•	Domain ke DNS settings ko edit karne ka access hona chahiye
+•	AWS account active hona chahiye aur billing enable honi chahiye
+________________________________________
+Step 2: Create S3 Bucket
+1.	AWS Console me login karo
+2.	Search bar me S3 likho aur open karo
+3.	Create Bucket pe click karo
+4.	Bucket name exactly apne domain ka rakho (e.g., launchshan.site)
+5.	Region select karo (jaise us-east-1)
+6.	Block all public access ka tick hata do
+7.	Confirmation checkbox tick karo
+8.	Create bucket pe click karo
+________________________________________
+Step 3: Upload Website Files (index.html ka complete procedure)
+1.	Bucket open karo
+2.	Upload button pe click karo
+3.	Add files pe click karo aur apne computer se index.html file select karo
+4.	Agar CSS, images waghera bhi hain to unko bhi add karo
+5.	Upload ke neeche Permissions section me ensure karo ke Grant public-read access ka option selected ho
+6.	Upload pe click karo
+7.	Upload complete hone ke baad Objects tab me index.html par click karke URL open karke check karo ke file load ho rahi hai ya nahi
+________________________________________
+Step 4: Enable Static Website Hosting
+1.	Bucket me Properties tab me jao
+2.	Scroll karke Static website hosting section me jao
+3.	Enable select karo
+4.	Index document me index.html likho
+5.	Save karo aur Endpoint URL note kar lo (baad me Route 53 me use hoga)
+________________________________________
+Step 5: Set Bucket Policy (Public Access)
+1.	Permissions tab me jao
+2.	Bucket policy pe click karo
+3.	Ye JSON paste karo (apne bucket name ke saath replace karo):
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::launchshan.site/*"
+    }
+  ]
+}
+4.	Save karo
+________________________________________
+Step 6: Create Hosted Zone in Route 53
+1.	AWS Console me Route 53 open karo
+2.	Hosted Zones me jao
+3.	Create Hosted Zone pe click karo
+4.	Domain name: launchshan.site likho
+5.	Type: Public hosted zone select karo
+6.	Create karo
+________________________________________
+Step 7: Create DNS Record for S3 Website
+1.	Hosted zone open karo
+2.	Create record pe click karo
+3.	Record name: khaali chhodo (root domain ke liye)
+4.	Record type: A – IPv4 address
+5.	Alias ko Yes karo
+6.	Alias target me apni S3 website endpoint select karo
+7.	Save record
+________________________________________
+Step 8: Update Domain Registrar’s Nameservers (GoDaddy) ✅ [Most Important Step]
+Ye sabse important step hai, kyunki jab tak aap GoDaddy pe nameservers update nahi karoge, AWS Route 53 ka DNS kaam nahi karega.
+NS Records kahaan se copy karein?
+1.	AWS Console me Route 53 → Hosted Zones open karo
+2.	Apna domain (launchshan.site) select karo
+3.	NS type record dekho — wahan 4 Nameservers likhe honge, kuch is tarah:
+ns-643.awsdns-16.net
+ns-1425.awsdns-50.org
+ns-1625.awsdns-11.co.uk
+ns-112.awsdns-14.com
+4.	Ye hi nameservers copy karke GoDaddy me paste karne hain
+________________________________________
+GoDaddy me paste karne ka procedure:
+1.	GoDaddy account me login karo
+2.	My Products me jao
+3.	Apne domain (launchshan.site) ke saamne DNS ya Manage DNS pe click karo
+4.	Nameservers section me jao
+5.	Option select karo I’ll use my own nameservers
+6.	Ye paste karo:
+o	Nameserver 1: ns-643.awsdns-16.net
+o	Nameserver 2: ns-1425.awsdns-50.org
+o	Add Nameserver pe click karke baaki do add karo:
+	ns-1625.awsdns-11.co.uk
+	ns-112.awsdns-14.com
+7.	Save karo
+💡 Note:
+•	DNS propagation me 30 minutes se 48 hours lag sakte hain
+•	Zyadatar cases me 5–30 minutes me live ho jata hai
+Verify DNS
+Nameservers sahi update hue hain ya nahi, check karne ke liye ye website use karo:
+•	https://dnschecker.org
+•	Domain likho aur NS (Nameserver) select karo
+•	Agar AWS ke nameservers show ho rahe hain to setup correct hai
+________________________________________
+Step 9: Test Your Domain
+1.	Browser me apna domain likho:
+http://launchshan.site
+2.	Agar setup sahi hai to aapki S3 hosted website load ho jayegi
+________________________________________
+Lab Result
+•	S3 bucket successfully website serve kar rahi hai
+•	Domain AWS Route 53 se resolve ho raha hai
+•	DNS propagation verified via DNS Checker
+________________________________________
+Theek hai 👍
+Main tumhare Topic 50 – AWS Load Balancer Assignment ke notes ko Roman Urdu me detailed version bana deta hoon,
+jisme browser se check karne ka method, IPv4 aur DNS ka test, aur Healthy status na ho to kaise fix karein sab kuch end me add kar deta hoon.
+________________________________________
+
+Assignment: 
+Setup Load Balancer in EC2 (Ubuntu Version)
+
+Objective
+AWS EC2 par multiple Ubuntu web servers bana kar Elastic Load Balancer (ALB) ke through traffic distribute karna,
+taake High Availability aur Fault Tolerance achieve ho sake.
+________________________________________
+Concept
+Load Balancer ka kaam hota hai incoming traffic ko multiple servers me equally distribute karna.
+Fayde:
+•	Agar ek server down ho jaye, doosra requests handle karega
+•	Performance improve hoti hai
+•	Scaling easy hoti hai
+________________________________________
+Steps
+Step 1: EC2 Instances Create karna
+1.	AWS Console me login karo
+2.	Search → EC2 open karo
+3.	Launch instance click karo
+4.	Instance name: web-server-1
+5.	AMI: Ubuntu Server 22.04 LTS
+6.	Instance type: t2.micro (Free Tier)
+7.	Key pair select ya create karo
+8.	Security group me HTTP (80) allow karo from 0.0.0.0/0
+9.	Launch instance click karo
+10.	Isi tarah web-server-2 create karo
+________________________________________
+Step 2: Apache Web Server Install karna
+Har EC2 pe:
+sudo apt update -y
+sudo apt install apache2 -y
+sudo systemctl start apache2
+sudo systemctl enable apache2
+Server 1:
+echo "<h1>This is Web Server 1</h1>" | sudo tee /var/www/html/index.html
+Server 2:
+echo "<h1>This is Web Server 2</h1>" | sudo tee /var/www/html/index.html
+Test:
+Browser me http://<PublicIPv4> open karo → server ka text aana chahiye.
+________________________________________
+Step 3: Target Group Create karna
+1.	Target type: Instance
+2.	Name: my-target-group
+3.	Protocol: HTTP, Port: 80
+4.	Register targets → dono EC2 select karo → Add
+5.	Target group create karo
+________________________________________
+Step 4: Application Load Balancer (ALB) Create karna
+1.	EC2 console → Load Balancers → Create Load Balancer
+2.	Type: Application Load Balancer
+3.	Name: my-alb
+4.	Scheme: Internet-facing
+5.	IP type: IPv4
+6.	Listener: HTTP (80)
+7.	AZs select karo jahan EC2 chal rahe hain
+________________________________________
+Step 5: ALB & Target Group Attach karna
+1.	ALB ke Listeners me → Target Group attach karo
+2.	ALB create karo
+3.	AWS ek DNS name dega, example:
+my-alb-1234567890.us-east-1.elb.amazonaws.com
+________________________________________
+Step 6: Browser Test
+Individual EC2 test:
+http://<EC2-PublicIPv4>
+Page load hoga aur har server ka apna text dikhega.
+Load Balancer test:
+http://my-alb-1234567890.us-east-1.elb.amazonaws.com
+Page refresh karo → kabhi "Web Server 1" aur kabhi "Web Server 2" dikhna chahiye.
+________________________________________
+Just check if any error 
+Agar Healthy Status na ho to Fix ka Tarika
+1.	Target Group Health Check Settings:
+o	Target Group → Health checks → Path / rakho
+o	Interval: 30s, Healthy threshold: 2, Unhealthy threshold: 2
+2.	Security Group Settings:
+o	Load Balancer SG: Port 80 → Source 0.0.0.0/0
+o	EC2 SG: Port 80 → Source: Load Balancer ka SG (recommended) ya 0.0.0.0/0 (test ke liye)
+3.	Apache Service Check:
+4.	sudo systemctl status apache2
+Agar stop ho to:
+sudo systemctl start apache2
+sudo systemctl enable apache2
+5.	Index.html File Check:
+6.	sudo nano /var/www/html/index.html
+File me valid HTML ho.
+7.	Subnet / AZ Issue:
+Dono EC2 same VPC me hone chahiye jisme ALB banaya gaya ho.
+________________________________________
+Final Result
+✅ 2 Ubuntu EC2 running with Apache
+✅ ALB traffic distribute kar raha hai
+✅ High Availability achieved
+________________________________________

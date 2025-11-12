@@ -1,0 +1,283 @@
+✅ Kubernetes Security (RBAC + Network Policies) — with Full Setup from Scratch
+________________________________________
+📘 Conceptual Explanation
+1. RBAC (Role-Based Access Control)a
+RBAC decide karta hai ke kaunsa user, service ya group cluster ke andar kya kar sakta hai.
+Example: read pods, deploy, delete services, etc.
+2. Network Policies
+Yeh rules hotay hain jo batatay hain ke kaunsa pod dusre pod se baat kar sakta hai (ingress/egress).
+Default behavior: All pods can talk to each other — until restricted by a policy.
+________________________________________
+🧠 Roman Urdu Explanation
+•	RBAC system cluster mein ye control karta hai ke kis user ya service account ko kya permission milegi.
+•	Network Policy ek tarah ka firewall hai jo pod-to-pod communication ko allow ya block karta hai.
+________________________________________
+🔁 Real-Life Example
+•	Aap chahte ho ke QA team sirf logs dekh sakay, deploy na kar sakay → RBAC se hoga.
+•	Aap chahte ho ke backend sirf frontend se baat kare, baaki kisi se nahi → Network Policy se hoga.
+________________________________________
+🧪 Full Lab from Scratch (Topic 41 Setup + Topic 42 Work)
+________________________________________
+🟢 Step 1: EC2 Instance Launch
+•	Ubuntu 22.04 LTS EC2 instance launch karo
+•	2 vCPU, 4GB RAM recommended
+
+Topic 42 – Required Ports (RBAC + Network Policies)
+🔢 Port	🧠 Purpose	✅ Open in Security Group
+22	SSH Access (as usual)	✔️ Required
+6443	API Server (kubectl, RBAC operations)	✔️ Required
+179	Calico BGP communication (if Calico used)	✔️ Optional
+4789	VXLAN traffic between pods (Calico default overlay)	✔️ Optional
+5473	Calico Typha agent (for performance at scale)	❌ Optional for large clusters
+🧾 Roman Urdu:
+•	Topic 42 mein RBAC aur NetworkPolicy backend hi use karta hai (koi direct user access nahi hoti).
+•	Is liye mainly 6443 aur internal pod-to-pod traffic relevant hai.
+•	Agar aap Calico use kar rahe hain, tu 4789 (VXLAN) aur optionally 179 (BGP) open karne chahiyein.
+________________________________________
+🟢 Step 2: Server Update & Prerequisite Install
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg lsb-release
+🧾 Roman Urdu: System ko update kar ke Docker aur Kubernetes install karne ki tayyari.
+________________________________________
+🟢 Step 3: Docker Install
+sudo mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+sudo systemctl enable docker
+sudo systemctl start docker
+🧾 Roman Urdu: Docker container runtime install kiya jo Kubernetes ke liye required hai.
+________________________________________
+🟢 Step 4: Kubernetes Repo + Install Components
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+________________________________________
+🟢 Step 5: Disable Swap & Enable Kernel Modules
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+sudo sysctl --system
+🧾 Roman Urdu: Swap disable kiya aur networking ke modules enable kiye.
+________________________________________
+🟢 Step 6: Install & Configure containerd
+sudo apt install -y containerd
+sudo mkdir -p /etc/containerd
+sudo containerd config default | sudo tee /etc/containerd/config.toml
+
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+🧾 Roman Urdu: containerd configure kiya jo K8s ke pods chalata hai.
+________________________________________
+🟢 Step 7: Cluster Init with Calico CNI
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+📌 Note: Output mein kubeconfig aur join command milegi.
+________________________________________
+🟢 Step 8: Kubeconfig Setup for User
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+________________________________________
+🟢 Step 9: Install Calico Networking
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+🧾 Roman Urdu: Calico networking plugin use kiya — ye pods ko IP assign karta hai aur policy enforce karta hai.
+________________________________________
+🟢 Step 10: Install NGINX Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.1/deploy/static/provider/cloud/deploy.yaml
+🧾 Roman Urdu: NGINX controller aapko apps ko external traffic se connect karne deta hai.
+________________________________________
+🔐 Topic 42 Practical: Kubernetes Security
+________________________________________
+🔐 Step 11: Create Namespace
+kubectl create namespace dev
+🧾 Roman Urdu: RBAC aur Policy ke liye dev namespace banaya.
+________________________________________
+🔐 Step 12: Create Role (Only Pod-Read Access)
+📄 role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dev
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+Apply it:
+kubectl apply -f role.yaml
+🧾 Roman Urdu: Ye role sirf pods ko read karne deta hai, deploy/delete nahi kar sakta.
+________________________________________
+🔐 Step 13: Bind Role to User
+📄 rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+Apply it:
+kubectl apply -f rolebinding.yaml
+🧾 Roman Urdu: dev-user ko pod-reader role assign kiya gaya hai sirf dekhne ke liye.
+________________________________________
+🔐 Step 14: Create Frontend + Backend Pods
+kubectl create deployment frontend --image=nginx -n dev
+kubectl create deployment backend --image=nginx -n dev
+🧾 Roman Urdu: Dono apps dev namespace mein run ho rahi hain.
+________________________________________
+🔐 Step 15: Apply Network Policy
+📄 network-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend
+  namespace: dev
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+Apply it:
+kubectl apply -f network-policy.yaml
+🧾 Roman Urdu: Ye policy sirf frontend ko backend se baat karne degi. Baaki pods block ho jayenge.
+________________________________________
+📊 Final Verification Commands
+kubectl get pods -n dev
+kubectl get role -n dev
+kubectl get rolebinding -n dev
+kubectl describe networkpolicy allow-frontend -n dev
+________________________________________
+📝 Assignment
+1.	Create namespace: secure-zone
+2.	RBAC rule: Sirf pod list kar sake
+3.	Network policy: Sirf frontend se hi backend reachable ho
+________________________________________
+🟡 Note (Browser Access for Ingress)
+Apne browser mein <instance_public_ip> ya <load_balancer_ip> laga kar / ya /api path se test karo (ye step end mein khud likhna hai).
+________________________________________
+
+Note :  Hm ye lab already opr waly setup mn kr chukay hn agr dobara krnoi hai tu first 10 steps kro opr se dobara kr skty hoo
+✅ Topic 42 – Kubernetes Security: Assignment Lab (Complete Practical)
+📌 Lab Goal:
+•	Create secure namespace secure-zone
+•	Apply RBAC (only list pods allowed)
+•	Apply NetworkPolicy (only frontend → backend communication)
+________________________________________
+🟢 Step 1: Namespace Create karo
+kubectl create namespace secure-zone
+📘 Roman Urdu: secure-zone naam ka alag area banaya gaya jisme security policies apply karenge.
+________________________________________
+🟢 Step 2: Sample Apps Deploy karo (frontend + backend)
+kubectl create deployment frontend --image=nginx -n secure-zone
+kubectl create deployment backend --image=nginx -n secure-zone
+📘 Roman Urdu: Dono apps ko secure-zone mein deploy kiya — ek frontend aur ek backend.
+________________________________________
+🟢 Step 3: Pods ko label karo (taake network policy identify kare)
+kubectl label pod -n secure-zone -l app=frontend app=frontend
+kubectl label pod -n secure-zone -l app=backend app=backend
+📘 Roman Urdu: Pod ke labels set kiye jisse network policy matchLabels use karke target kare.
+________________________________________
+🟢 Step 4: RBAC Role File banao (role.yaml)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: secure-zone
+  name: pod-reader
+rules:
+- apiGroups: [""
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+Save karo: role.yaml
+________________________________________
+🟢 Step 5: RBAC RoleBinding File banao (rolebinding.yaml)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: secure-zone
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+Save karo: rolebinding.yaml
+📘 Roman Urdu: dev-user sirf pods dekh sakta hai. Na create, na delete, na update.
+________________________________________
+🟢 Step 6: YAMLs Apply karo
+kubectl apply -f role.yaml
+kubectl apply -f rolebinding.yaml
+________________________________________
+🟢 Step 7: Network Policy File banao (network-policy.yaml)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend
+  namespace: secure-zone
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+Save karo: network-policy.yaml
+📘 Roman Urdu: Sirf frontend se traffic backend pod ko allowed hai. Baaki sab blocked.
+________________________________________
+🟢 Step 8: Apply Network Policy
+kubectl apply -f network-policy.yaml
+________________________________________
+🟢 Step 9: Test karo (Optional but Recommended)
+1.	Exec into frontend pod:
+2.	kubectl exec -n secure-zone -it $(kubectl get pod -n secure-zone -l app=frontend -o jsonpath='{.items[0].metadata.name}') -- /bin/bash
+3.	Inside frontend, run:
+4.	apt update && apt install curl -y
+5.	curl http://backend
+6.	Phir kisi random pod se try karo (jo frontend nahi hai) — usse traffic fail hoga.
+📘 Roman Urdu: Sirf frontend → backend traffic allow hai. Ye test network policy ko verify karta hai.
+________________________________________
+✅ Summary (Roman Urdu):
+•	Secure-zone namespace bana
+•	RBAC laga ke access limited kiya (read-only)
+•	NetworkPolicy laga ke backend ko sirf frontend se traffic allow kiya
+________________________________________

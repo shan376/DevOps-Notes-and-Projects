@@ -1,0 +1,285 @@
+🚀 Prometheus + Grafana — Kubernetes Monitoring from Scratch
+🧠 Conceptual Explanation (Roman Urdu Mein)
+🔍 Topic: Prometheus + Grafana — Kubernetes Monitoring
+________________________________________
+📌 Problem Statement:
+Soch ke dekh — tu ek company ka DevOps Engineer hai, jahan dozens of applications Kubernetes cluster pe chal rahi hoti hain.
+Ab sawal ye hai:
+•	Agar koi pod crash ho jaye, tujhe kaise pata chale ga?
+•	Agar CPU 100% ho jaye ya memory leak ho, tu kaise diagnose karega?
+•	Agar kisi app ka latency barh gaya hai, ya response time slow ho gaya hai — tu kaise monitor karega?
+👎 Kubernetes khud real-time monitoring aur UI graphs nahi deta.
+Tu sirf kubectl get pods ya kubectl top pods jaise basic CLI se dekh sakta hai — wo bhi manually.
+________________________________________
+✅ Solution: Prometheus + Grafana
+Yahan aate hain do DevOps ke powerful tools:
+________________________________________
+📈 Prometheus (Monitor Everything Automatically)
+•	Ye ek metrics collector hai.
+•	Ye automatically har pod, node, service ka CPU, RAM, Network usage, restart count, disk I/O, etc. collect karta rehta hai.
+•	Ye data ko time-series format mein store karta hai (jaise "CPU usage at 2:01 PM was 78%").
+🔄 Prometheus Real-Life Example:
+Jaise tu ek CCTV camera lagata hai ghar ke bahar — wo continuously monitor karta hai aur record karta hai.
+Waise hi Prometheus Kubernetes ke har component pe nazar rakhta hai, aur unka data collect karta hai har 15s, 30s, 1 min interval pe.
+________________________________________
+📊 Grafana (Visualization & Dashboards)
+•	Prometheus sirf data collect karta hai, Grafana use karta hai wo data charts, graphs, dashboards mein dikhane ke liye.
+•	Tu Grafana mein CPU ka graph, pod crash count, network latency trends, sab dekh sakta hai visually.
+•	Ye completely customizable hai: tu apne charts bana sakta hai: Top 5 pods by memory, Slowest APIs, etc.
+🖥️ Grafana Real-Life Example:
+Jaise tu CCTV ka DVR screen dekh ke real-time monitor karta hai — "kya chal raha hai", "kaha movement hui", waise hi Grafana se tu real-time performance dekh sakta hai apne cluster ki.
+________________________________________
+🛠️ Why We Need It in Real Life
+1.	✅ Real-Time Alerts:
+o	Agar CPU 90% cross kare, to alert bhej sakte ho Slack, Email ya PagerDuty par.
+o	Example: Production app crash hone se pehle hi tu alert se issue resolve kar sakta hai.
+2.	✅ Historic Analysis:
+o	Pichlay 7 din ka graph dekh ke tu identify kar sakta hai ke latency kab badhi thi, kaunse app ne zyada CPU khaya.
+3.	✅ Capacity Planning:
+o	Prometheus + Grafana se tu dekh sakta hai kaunsa node over-utilized hai.
+o	Fir tu decide karta hai — "Naye node add karo", ya "scale down karo".
+4.	✅ Kubernetes Debugging:
+o	Agar pod baar baar crash ho raha hai, tu crash loops, restart count, memory leak sab identify kar sakta hai Prometheus se.
+________________________________________
+⚙️ Where It's Used (Real-World Use Cases)
+Company	Use Case
+Netflix	Monitor karta hai har microservice ka latency, stream failure, buffering, etc.
+Airbnb	Prometheus+Grafana se server health check aur container load balance manage karte hain
+Amazon	Har Lambda, EC2, EKS ka performance live monitor hota hai Grafana dashboards pe
+________________________________________
+🎯 Final Summary (Roman Urdu Mein)
+•	Prometheus ek data collector hai jo Kubernetes ki har cheez ka health data store karta hai.
+•	Grafana us data ko beautifully show karta hai graphs aur charts mein.
+•	In dono tools se tu production system ke andar ka live performance, errors, alerts, sab dekh sakta hai bina manually check kiye.
+•	Ye tujh jaise DevOps engineer ke liye monitoring + troubleshooting ka ultimate combo hai.
+________________________________________
+Agar tu chahye to mein iska ek simple chart bana ke bhi samjha sakta hoon (data flow between K8s → Prometheus → Grafana).
+Bhai, ye topic production-grade DevOps ka heart hai — agar ye achhi tarah samajh gaya tu, tu easily real-world environments handle kar sakta hai ✅
+Batao agar isme aur visual example chahiye ya assignment guide bhi separately likh doon?
+ (New Server Setup)
+________________________________________
+🧰 What We Will Do:
+1.	Launch new EC2 Ubuntu server
+2.	Install Docker, kubeadm, kubectl
+3.	Setup Kubernetes Cluster
+4.	Install Helm
+5.	Deploy Prometheus + Grafana via Helm
+6.	Access Dashboards (Port Forwarding)
+7.	Assignment: Explore metrics in Grafana
+________________________________________
+🟢 Step 1: Launch New EC2 Server
+•	OS: Ubuntu 22.04 LTS
+•	Type: t2.medium (2 vCPU, 4 GB RAM minimum)
+•	✅ Enable ports:
+o	22 (SSH)
+o	6443 (K8s API)
+o	3000 (Grafana UI)
+o	9090 (Prometheus UI)
+________________________________________
+🟢 Step 2: Update OS & Install Prerequisites
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+🧾 Roman Urdu: Server ko update kar rahe hain aur zaroori packages install kar rahe hain.
+________________________________________
+🟢 Step 3: Install Docker
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+________________________________________
+🟢 Step 4: Install containerd & Configure
+sudo apt install -y containerd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+________________________________________
+🟢 Step 5: Disable Swap & Load Modules
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+sudo sysctl --system
+________________________________________
+🟢 Step 6: Install Kubernetes (Correct Latest Method)
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+________________________________________
+🟢 Step 7: Initialize Cluster with Calico CNI
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+📌 Output mein aapko kubeconfig aur join command milegi.
+________________________________________
+🟢 Step 8: Configure kubectl Access
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+________________________________________
+🟢 Step 9: Install Calico Network Plugin
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+________________________________________
+🟢 Step 10: Install Helm (Latest Version)
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+Verify:
+helm version
+________________________________________
+📊 Step 11: Install Prometheus + Grafana via Helm
+Got it Shan bhai! ✅
+Let me now write the correct and final version of Topic 43 Step 11 (Prometheus + Grafana Helm Install) from scratch, including the correct commands, Roman Urdu explanation, error handling, and everything structured like our original notes.
+________________________________________
+📊 Step 11: Install Prometheus + Grafana via Helm (Final & Fixed)
+🔹 11.1 Add Prometheus Helm Repository
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+🧾 Roman Urdu: Helm ko batate hain k hum Prometheus ke charts kis URL se install karen. repo update se latest chart versions aajate hain.
+Note : Before step 11.2 we remove taint as 
+Since you only have 1 node (control plane), we need to allow regular pods to run on it.
+🔧 Run this command:
+bash
+CopyEdit
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+That hyphen - at the end removes the taint and allows scheduling.
+________________________________________
+🔹 11.2 Create a Namespace for Monitoring
+kubectl create namespace monitoring
+🧾 Roman Urdu: Alag monitoring namespace banate hain taake sab monitoring-related cheezein isolated rahen.
+________________________________________
+🔹 11.3 Install Prometheus Stack via Helm (Error-Free ✅)
+helm install prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate=null \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate=null \
+  --set grafana.persistence.enabled=false \
+  --wait \
+  --timeout 10m
+🧾 Roman Urdu:
+•	Prometheus aur Alertmanager ke liye agar aap storage (PVC) use nahi kar rahe, to unka volumeClaimTemplate null set karo.
+•	Grafana ke liye persistence disable kiya gaya hai.
+•	--wait ensures ke tab tak wait kare jab tak pods deploy na ho jaayein.
+•	--timeout 10 min tak wait karein agar cluster slow ho.
+✅ Ye command bilkul safe hai aur error nahi aayega.
+________________________________________
+🔍 Step 12: Verify Pods
+kubectl get pods -n monitoring
+Make sure all pods are Running, especially:
+•	prometheus
+•	grafana
+•	kube-state-metrics
+________________________________________
+🌐 Step 13: Port Forward to Grafana
+kubectl port-forward svc/prometheus-stack-grafana 3000:80 -n monitoring
+🖥️ Access: http://localhost:3000
+🔑 Default Login:
+kubectl get secret --namespace monitoring prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d
+Username: admin
+Password: (from above command)
+Complete Setting 
+📌 Problem:
+Tu putty mein EC2 pe login tu kar raha hai, aur tu Grafana bhi install kar chuka hai.
+Par jab tu browser mein http://localhost:3000 kholta hai, kuch nahi dikhta ❌
+Wajah:
+kubectl port-forward tu EC2 ke andar chala raha hai.
+Lekin browser tu apne laptop/PC pe chala raha hai.
+Dono ka "localhost" alag hota hai. Yeh same nahi hotay!
+✅ Solution:
+Tujhe PuTTY ke andar ek “Tunnel” banana hoga
+Jis se tera laptop ka browser jab localhost:3000 kholay, wo data tunnel ho ke EC2 ke Grafana tak pohanch jaye.
+Yeh tunnel bananay ke liye hum PuTTY ki Settings mein thoda kaam karte hain.
+________________________________________
+💻 Step-by-Step — Grafana ko PC ke Browser se Access Karna via PuTTY
+________________________________________
+🛠️ Step 1: PuTTY dobara open kar
+Apna already chal raha session close kar do. Ab hum naya tunnel waala session banayenge.
+1.	Start → Search “PuTTY” → Open karo
+2.	Host Name wale box mein yeh likho:
+ubuntu@<EC2 ka Public IP>
+Jaise agar tera IP hai 3.91.245.190 to likh:
+ubuntu@3.91.245.190
+✅ Note: Yeh sirf likhna hai — yeh direct login nahi karega abhi.
+________________________________________
+🧷 Step 2: Left side se jao:
+Connection → SSH → Auth
+Wahan pe:
+•	Browse karo apni .ppk file (jo .pem se convert ki thi via PuTTYgen)
+________________________________________
+🌐 Step 3: Left side se aur neeche jao:
+Connection → SSH → Tunnels
+Yahan pe SSH Tunnel banani hai:
+•	Source port mein likho: 3000
+•	Destination mein likho: localhost:3000
+Fir niche "Add" pe click karo ✅
+Niche ek line aa jaye gi:
+L3000  localhost:3000
+👉 iska matlab hai: laptop ka localhost:3000 → EC2 ka localhost:3000
+________________________________________
+💾 Step 4: Save Session (optional)
+•	Left side top pe Session tab pe jao
+•	“Saved Sessions” box mein koi naam likho:
+grafana-tunnel
+•	Click Save
+________________________________________
+🔑 Step 5: Now Connect karo
+•	Ab click karo Open
+•	Fir PuTTY window khul jayegi
+•	Login karo as ubuntu (ya pehle se login ho jata hai if .ppk sahi hai)
+________________________________________
+🟢 Step 6: EC2 ke andar run karo yeh command:
+kubectl --namespace monitoring port-forward svc/prometheus-stack-grafana 3000:80
+Agar tu ne already yeh chala diya hai, to dobara chalane ki zarurat nahi.
+Is command ka kaam: EC2 ke andar Grafana ko uske localhost:3000 pe chalaana
+________________________________________
+🌍 Step 7: Apne Laptop/PC ke browser mein jao
+Browser open karo aur likho:
+http://localhost:3000
+🎉 Ab Grafana ka login page khul jaye ga!
+________________________________________
+🔐 Login Info:
+•	Username: admin
+•	Password: prom-operator
+(jo tu ne yeh command se nikala tha:
+kubectl get secret prometheus-stack-grafana ...)
+________________________________________
+🔁 Agar Prometheus bhi access karna hai:
+Repeat Step 3, add new tunnel:
+•	Source port: 9090
+•	Destination: localhost:9090
+•	Click Add
+Fir EC2 mein run karo:
+kubectl port-forward svc/prometheus-stack-kube-prom-prometheus 9090 -n monitoring
+Browser mein jao:
+http://localhost:9090
+________________________________________
+✅ Roman Urdu Final Samjhain ab:
+Bhai, jo tu kubectl port-forward chala raha hai wo EC2 ke andar chal raha hai, uska localhost tere laptop ka localhost nahi hai.
+Tujhe PuTTY ke andar ja ke SSH Tunnel banana paday ga, jisme tu apne laptop ke port 3000 ko EC2 ke localhost:3000 se connect kare ga.
+Iske baad jab tu browser mein http://localhost:3000 khole ga, wo EC2 ke Grafana se connect ho jaye ga.
+________________________________________
+✅ Assignment (Same Server par)
+🎯 Do this on same setup:
+1.	Open Grafana on localhost:3000
+2.	Login using password from command
+3.	Explore:
+o	Cluster metrics
+o	Node and Pod CPU usage
+o	Workload dashboards
+4.	📊 Bonus: Create a new custom dashboard showing top 5 pods by memory usage.
+________________________________________

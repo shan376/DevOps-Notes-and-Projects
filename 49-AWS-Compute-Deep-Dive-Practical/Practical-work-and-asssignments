@@ -1,0 +1,107 @@
+📌 Practical Work – AWS Compute Deep Dive
+
+🖥️ Part 1: EC2 Instance Setup (Ubuntu 20.04)
+Step 1: Launch EC2 Instance
+- OS: Ubuntu 20.04 LTS
+- Instance Type: t2.micro
+- Security Groups: SSH 22 (My IP), HTTP 80 (Anywhere), HTTPS 443 (Optional)
+- Description: Ye VM server banayenge jahan hum manually apps deploy kar sakte hain.
+
+🖥️ Part 2: SSH Access & Basic Tools Install
+ssh -i your-key.pem ubuntu@<ec2-public-ip>
+sudo apt update && sudo apt install -y git python3-pip awscli
+- Description: EC2 ko connect karna aur git, pip, awscli install karna for further work.
+
+🧰 Part 3: AWS CLI Configuration
+aws configure
+- Description: AWS CLI configure karna IAM user ki keys ke sath taake command line se AWS services access ho saken.
+
+🐍 Part 4: Create Flask App Locally
+mkdir flaskapp && cd flaskapp
+nano application.py
+- Paste Flask app code:
+  from flask import Flask
+  application = Flask(__name__)
+  @application.route('/')
+  def home():
+      return "Hello from AWS Elastic Beanstalk!"
+  if __name__ == "__main__":
+      import os
+      port = int(os.environ.get('PORT', 8080))
+      application.run(host='0.0.0.0', port=port)
+- Description: Simple Flask web app banayi jisse EB pe deploy karenge.
+
+📦 Part 5: Create Required Files
+echo "flask" > requirements.txt
+echo "gunicorn" >> requirements.txt
+echo "python-3.9" > runtime.txt
+- Description: Flask aur Gunicorn dependencies aur Python runtime specify karna EB ke liye.
+
+📦 Part 6: Elastic Beanstalk CLI Install
+sudo apt install python3-pip -y
+pip3 install --upgrade --user awsebcli
+echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+eb --version
+- Description: EB CLI install karna taake app deploy aur manage kar saken.
+
+🚀 Part 7: Initialize Elastic Beanstalk
+eb init -p python-3.9 flaskapp --region us-east-1
+- Description: EB app initialize karna aur SSH key attach karna.
+
+🌐 Part 8: Create Environment & Deploy
+eb create flask-env
+- Description: Environment create karke Flask app deploy karna.
+
+🔍 Part 10: Check Live URL
+eb open
+- Description: Browser mein app live URL check karna.
+
+🔧 Part 11: Check Logs (If Health = RED)
+eb logs
+- Description: Agar app health red ho to logs check kar ke fix karna.
+
+🧹 Part 12: Clean Up (If Needed)
+eb terminate flask-env --force
+eb create flask-env
+- Description: Broken environment ko terminate aur re-create karna.
+
+🛠 Link Flask App to GitHub
+cd /home/ubuntu/flaskapp
+git init
+git remote add origin https://github.com/shan376/flaskapp.git
+git add .
+git commit -m "Initial Flask app for Elastic Beanstalk deployment"
+git branch -M main
+git push -u origin main --force
+- Description: Project GitHub pe push karna taake version control aur sharing possible ho.
+
+🧹 Optional Cleanup: Add .gitignore
+nano .gitignore
+- Paste content:
+  __pycache__/
+  *.pyc
+  *.log
+  .env
+  .venv/
+git add .gitignore
+git commit -m "Add .gitignore to exclude temp files"
+git push
+- Description: Cache aur sensitive files Git se exclude karna.
+
+📌 Assignment – AWS Lambda: Create & Test First Function
+1. Go to Lambda Console
+2. Click Create function → Author from scratch
+3. Fill Info: Function name: HelloLambda, Runtime: Python 3.9, Architecture: x86_64, Execution Role: basic Lambda permissions
+4. Click Create
+5. Add code:
+def lambda_handler(event, context):
+    return {
+        'statusCode': 200,
+        'body': 'Hello from AWS Lambda!'
+    }
+6. Click Deploy
+7. Test function: Configure test event, click Test
+8. Check output: {"statusCode": 200, "body": "Hello from AWS Lambda!"}
+9. (Optional) Set up Function URL for public access
+- Description: Simple serverless function banayi aur test kiya, optional URL se browser ya app se call kar sakte hain.

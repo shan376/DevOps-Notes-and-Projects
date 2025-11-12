@@ -1,0 +1,184 @@
+📘 Argo CD Basics
+🔧 Argo CD Installation & Setup (From Scratch on New Server)
+________________________________________
+🔹 Conceptual Understanding (Roman Urdu)
+Argo CD ek GitOps tool hai jo aap ke Git repo aur Kubernetes cluster ke beech bridge banata hai.
+Jab bhi Git repo mein YAML changes aate hain, Argo CD un changes ko automatically detect karke cluster mein deploy kar deta hai — bina manual deployment ke.
+🔁 Real-World Analogy:
+Socho Git repo ek instruction book hai, aur Argo CD ek robot chef hai jo wo book dekh kar khana banana start kar deta hai — jaise hi usay nayi recipe milti hai.
+________________________________________
+⚙️ Complete Practical Lab – Argo CD Setup & GitOps Deployment (No Prerequisites Assumed)
+Platform: 🖥️ Ubuntu EC2 Server (Fresh Instance)
+Cluster: 🚀 Minikube (Local Kubernetes)
+GitOps Tool: 🎯 Argo CD
+Git Platform: 🐙 GitHub Repo (your own)
+Same lab krni hai jaisy topic 46 ki thi but just method thuda change hai.
+________________________________________
+✅ Step-by-Step Setup From Scratch
+✅ Step 1: Update System & Install Docker
+sudo apt update -y
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+docker --version
+________________________________________
+✅ Step 2: Create a Non-Root User for Minikube
+# Set password: 12345678
+sudo adduser minikubeuser  
+sudo usermod -aG sudo minikubeuser
+sudo usermod -aG docker minikubeuser
+Now switch to that user:
+su - minikubeuser
+________________________________________
+✅ Step 3: Install Minikube
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+chmod +x minikube-linux-amd64
+sudo mv minikube-linux-amd64 /usr/local/bin/minikube
+Start Minikube:
+minikube start
+________________________________________
+✅ Step 4: Install kubectl
+sudo snap install kubectl --classic
+kubectl version --client
+________________________________________
+✅ Step 5: Install Argo CD CLI
+curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+chmod +x argocd
+sudo mv argocd /usr/local/bin/
+argocd version
+________________________________________
+✅ Step 6: Deploy Argo CD to Minikube Cluster
+kubectl create namespace argocd
+
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+Wait 1-2 mins, then verify:
+kubectl get pods -n argocd
+________________________________________
+✅ Step 7: Access Argo CD Dashboard (Port-Forward)
+kubectl port-forward svc/argocd-server -n argocd 8081:80
+Open in browser:
+👉 http://localhost:8081
+________________________________________
+✅ Step 8: Get Initial Admin Password
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d
+Login on UI:
+• Username: admin
+• Password: (from above command)
+________________________________________
+✅ GitOps: Deploy App via Argo CD
+________________________________________
+🧱 Step 9: Create Sample App Manifests
+mkdir -p ~/myn47/manifests
+cd ~/myn47/manifests
+➤ deployment.yaml
+nano deployment.yaml
+Paste this:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myn47-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myn47
+  template:
+    metadata:
+      labels:
+        app: myn47
+    spec:
+      containers:
+      - name: myn47
+        image: nginx
+        ports:
+        - containerPort: 80
+➤ service.yaml
+nano service.yaml
+Paste this:
+apiVersion: v1
+kind: Service
+metadata:
+  name: myn47-service
+spec:
+  selector:
+    app: myn47
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+________________________________________
+🔗 Step 10: Push Files to GitHub
+Ye commands run kro pehly
+git config --global user.email "shanzafaro46@gmail.com"
+git config --global user.name "shan zafar"
+
+phir ye commands do
+cd ~/myn47
+git init
+git remote add origin https://github.com/shan376/myn47
+git add .
+git commit -m "Argo CD manifests added"
+git branch -M main
+git push -u origin main
+________________________________________
+🔐 Step 11: Login to Argo CD CLI
+argocd login localhost:8081 –insecure
+
+Get Initial Admin Password
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d
+Login in putty
+• Username: admin
+• Password: (from above command)
+________________________________________
+🔧 Step 12: Register GitHub Repo in Argo CD
+argocd repo add https://github.com/shan376/myn47 \
+  --username shan376 \
+  --password <your-personal-access-token>
+________________________________________
+🛠️ Step 13: Create Argo CD Application
+argocd app create myn47-app \
+  --repo https://github.com/shan376/myn47 \
+  --path manifests \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default
+________________________________________
+🔁 Step 14: Sync and Deploy App
+argocd app sync myn47-app
+Verify deployment:
+kubectl get pods
+________________________________________
+🧪 Optional Test – Automate Deployment Change
+Edit Deployment and change image:
+nano ~/myn47/manifests/deployment.yaml
+Change to:
+image: nginx:1.21
+Then:
+git add .
+git commit -m "Updated nginx version to 1.21"
+git push origin main
+✅ Argo CD will detect this Git change and auto-deploy the update.
+________________________________________
+✅ Assignment – Automate from Scratch
+Perform all steps above on a new EC2 server:
+• Install Docker, Minikube
+• Setup user, install kubectl & Argo CD
+• Push app to GitHub
+• Deploy using Argo CD (no manual kubectl apply)
+• Take screenshots of app deployment, UI login, auto-sync logs
+• Upload them to your GitHub repo /screenshots folder
+________________________________________
+🧾 Summary
+Task Done
+Docker + Minikube setup ✅
+Non-root user for Minikube ✅
+kubectl + Argo CD installed ✅
+Argo CD deployed to cluster ✅
+GitHub repo connected ✅
+App created & synced ✅
+Auto-deployment tested ✅
+Screenshots uploaded 🔲
+________________________________________

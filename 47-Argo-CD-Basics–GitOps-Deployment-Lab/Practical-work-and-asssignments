@@ -1,0 +1,146 @@
+📌 Practical Work – Argo CD Setup & GitOps Deployment
+
+1️⃣ Update System & Install Docker
+- System update karo aur Docker install karo.
+sudo apt update -y
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+docker --version
+
+2️⃣ Create Non-Root User for Minikube
+- Minikube ke liye naya user banao aur sudo + docker groups me add karo.
+sudo adduser minikubeuser
+sudo usermod -aG sudo minikubeuser
+sudo usermod -aG docker minikubeuser
+su - minikubeuser
+
+3️⃣ Install Minikube
+- Minikube binary download aur setup karo, phir start karo.
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+chmod +x minikube-linux-amd64
+sudo mv minikube-linux-amd64 /usr/local/bin/minikube
+minikube start
+
+4️⃣ Install kubectl
+- Kubernetes CLI install karo.
+sudo snap install kubectl --classic
+kubectl version --client
+
+5️⃣ Install Argo CD CLI
+- Argo CD CLI download aur setup karo.
+curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+chmod +x argocd
+sudo mv argocd /usr/local/bin/
+argocd version
+
+6️⃣ Deploy Argo CD to Minikube
+- Namespace create karo aur Argo CD manifests apply karo.
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get pods -n argocd  # verify pods
+
+7️⃣ Access Argo CD Dashboard
+- Port-forward karke browser me access karo.
+kubectl port-forward svc/argocd-server -n argocd 8081:80
+http://localhost:8081
+
+8️⃣ Get Initial Admin Password
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+# Username: admin, Password: above command ka output
+
+9️⃣ Create Sample App Manifests
+- Deployment aur Service YAML files banao.
+mkdir -p ~/myn47/manifests
+cd ~/myn47/manifests
+
+# deployment.yaml
+nano deployment.yaml
+# Paste content
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myn47-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myn47
+  template:
+    metadata:
+      labels:
+        app: myn47
+    spec:
+      containers:
+      - name: myn47
+        image: nginx
+        ports:
+        - containerPort: 80
+
+# service.yaml
+nano service.yaml
+# Paste content
+apiVersion: v1
+kind: Service
+metadata:
+  name: myn47-service
+spec:
+  selector:
+    app: myn47
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+🔟 Push Files to GitHub
+git config --global user.email "shanzafaro46@gmail.com"
+git config --global user.name "shan zafar"
+cd ~/myn47
+git init
+git remote add origin https://github.com/shan376/myn47
+git add .
+git commit -m "Argo CD manifests added"
+git branch -M main
+git push -u origin main
+
+1️⃣1️⃣ Login to Argo CD CLI
+argocd login localhost:8081 –insecure
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+# Username: admin, Password: above command ka output
+
+1️⃣2️⃣ Register GitHub Repo in Argo CD
+argocd repo add https://github.com/shan376/myn47 --username shan376 --password <your-personal-access-token>
+
+1️⃣3️⃣ Create Argo CD Application
+argocd app create myn47-app --repo https://github.com/shan376/myn47 --path manifests --dest-server https://kubernetes.default.svc --dest-namespace default
+
+1️⃣4️⃣ Sync and Deploy App
+argocd app sync myn47-app
+kubectl get pods  # verify deployment
+
+🧪 Optional Test – Auto Deployment Change
+- Deployment YAML me image version update karo aur Git push karo.
+nano ~/myn47/manifests/deployment.yaml
+# change image: nginx:1.21
+git add .
+git commit -m "Updated nginx version to 1.21"
+git push origin main
+# Argo CD automatically detect aur deploy karega.
+
+✅ Assignment – Automate from Scratch
+- New EC2 server pe repeat karo: Docker, Minikube setup, user creation, kubectl & Argo CD install.
+- App push karo GitHub.
+- Deploy karo Argo CD se (no manual kubectl apply).
+- Screenshots lo: app deployment, UI login, auto-sync logs.
+- Upload screenshots to /screenshots folder in your GitHub repo.
+
+🧾 Summary
+Docker + Minikube setup ✅
+Non-root user for Minikube ✅
+kubectl + Argo CD installed ✅
+Argo CD deployed to cluster ✅
+GitHub repo connected ✅
+App created & synced ✅
+Auto-deployment tested ✅
+Screenshots uploaded 🔲

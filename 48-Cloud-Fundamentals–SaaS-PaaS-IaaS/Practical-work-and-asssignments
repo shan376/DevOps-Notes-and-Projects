@@ -1,0 +1,82 @@
+## Cloud Fundamentals – Practical Work & Assignments
+
+### 🔧 Practical Work Steps
+
+**Step 1: Understand Cloud Concept**
+
+* Samjho cloud ka matlab hai internet ke zariye server, storage, app, aur database use karna bina khud setup kiye.
+* Pay-as-you-go model: jitna use karo utna hi paisa do.
+
+**Step 2: Identify Benefits of Cloud**
+
+* Speed: Resources minutes mein ready ho jate hain.
+* Cost Saving: Hardware kharidne ki zarurat nahi.
+* Scalability: Traffic badhne par server auto grow.
+* Flexibility: Kahin se bhi kaam.
+* Reliability: Backup aur recovery system ready.
+
+**Step 3: Explore Cloud Service Models**
+
+1. **SaaS (Software as a Service)**
+
+   * Sirf software use karte ho, provider sab manage karta hai.
+   * Examples: Gmail, Google Docs, Zoom, Microsoft 365.
+   * Use Case: Student assignments Google Docs mein likhta hai.
+
+2. **PaaS (Platform as a Service)**
+
+   * Developer sirf app code banata hai, OS aur runtime cloud manage karta hai.
+   * Examples: Heroku, AWS Elastic Beanstalk, Google App Engine.
+   * Use Case: Node.js app Heroku pe deploy.
+
+3. **IaaS (Infrastructure as a Service)**
+
+   * Server aur infra milta hai, aap OS install aur app deploy manage karte ho.
+   * Examples: AWS EC2, Azure VM, Google Compute Engine.
+   * Use Case: Sysadmin EC2 server manage karta hai.
+
+**Step 4: Visual Comparison**
+
+* IaaS, PaaS aur SaaS ke responsibilities compare karo using table.
+* Kaun kya manage karta hai (App, Data, OS, Servers etc.).
+
+**Step 5: Real-Life Use Cases**
+
+* Decide karo kaunsa model best hai based on scenario:
+
+  * Sirf email use: SaaS
+  * Developer Python app deploy: PaaS
+  * Full control chahiye OS/firewall: IaaS
+
+---
+
+### 📚 Assignments (GitHub Ready)
+
+**Task 1: Comparison Table**
+
+* Feature | SaaS | PaaS | IaaS
+* App control | ❌ | ✅ | ✅
+* OS install | ❌ | ❌ | ✅
+* Example | Gmail | Heroku | AWS EC2
+
+**Task 2: 2-Line Explanation per Model**
+
+1. **SaaS** – Aam users ke liye best hai jo sirf software use karna chahte hain bina install kiye.
+2. **PaaS** – Developers ke liye easy hai, sirf app banani hai, infra manage nahi karna padta.
+3. **IaaS** – Full control chahiye toh IaaS best hai, OS se le kar firewall tak sab aap manage karte ho.
+
+**✅ Instructions:**
+
+* Save as `.md` file ya PDF.
+* Upload to GitHub repo under `/assignments` folder.
+
+---
+
+### 🔚 Summary of Practical Work
+
+* Cloud concept samjha aur benefits identify kiye.
+* SaaS, PaaS, IaaS models explore kiye aur examples note kiye.
+* Visual comparison aur real-life use cases practice kiye.
+
+---
+

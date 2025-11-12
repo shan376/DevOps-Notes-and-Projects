@@ -1,0 +1,258 @@
+# 🚀 Prometheus + Grafana — Kubernetes Monitoring
+
+## Practical Work (Step-by-Step)
+
+### 🟢 Step 1: Launch New EC2 Server
+
+* OS: Ubuntu 22.04 LTS, Type: t2.medium (2 vCPU, 4 GB RAM)
+* Enable ports: 22(SSH), 6443(K8s API), 3000(Grafana), 9090(Prometheus)
+  **Roman Urdu:** Naya server launch karte hain aur required ports open karte hain.
+
+---
+
+### 🟢 Step 2: Update OS & Install Prerequisites
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+```
+
+**Roman Urdu:** Server update kar rahe hain aur zaroori packages install kar rahe hain.
+
+---
+
+### 🟢 Step 3: Install Docker
+
+```bash
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+**Roman Urdu:** Docker install karke start aur enable kar rahe hain.
+
+---
+
+### 🟢 Step 4: Install containerd & Configure
+
+```bash
+sudo apt install -y containerd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+```
+
+**Roman Urdu:** Containerd install karte hain aur systemd cgroup enable karte hain.
+
+---
+
+### 🟢 Step 5: Disable Swap & Load Modules
+
+```bash
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+sudo sysctl --system
+```
+
+**Roman Urdu:** Swap disable karte hain aur Kubernetes ke required kernel modules load karte hain.
+
+---
+
+### 🟢 Step 6: Install Kubernetes
+
+```bash
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+**Roman Urdu:** Kubernetes tools install karte hain aur update block kar dete hain.
+
+---
+
+### 🟢 Step 7: Initialize Cluster with Calico CNI
+
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+```
+
+**Roman Urdu:** Cluster initialize karte hain aur output mein kubeconfig aur join command note karte hain.
+
+---
+
+### 🟢 Step 8: Configure kubectl Access
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+**Roman Urdu:** Kubectl access setup karte hain apne user ke liye.
+
+---
+
+### 🟢 Step 9: Install Calico Network Plugin
+
+```bash
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+```
+
+**Roman Urdu:** Network plugin apply karte hain cluster ke liye.
+
+---
+
+### 🟢 Step 10: Install Helm
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
+```
+
+**Roman Urdu:** Helm install aur verify karte hain.
+
+---
+
+### 🟢 Step 11: Install Prometheus + Grafana via Helm
+
+#### 11.1 Add Helm Repo
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
+
+**Roman Urdu:** Helm ko batate hain Prometheus repo se install karne ke liye.
+
+#### 11.2 Remove Control Plane Taint
+
+```bash
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+```
+
+**Roman Urdu:** Single node cluster pe regular pods allow karne ke liye taint remove karte hain.
+
+#### 11.3 Create Namespace
+
+```bash
+kubectl create namespace monitoring
+```
+
+**Roman Urdu:** Monitoring ke liye alag namespace banate hain.
+
+#### 11.4 Install Prometheus Stack
+
+```bash
+helm install prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate=null \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate=null \
+  --set grafana.persistence.enabled=false \
+  --wait \
+  --timeout 10m
+```
+
+**Roman Urdu:** Prometheus aur Grafana deploy karte hain error-free; persistence disable aur wait options ke sath.
+
+---
+
+### 🔍 Step 12: Verify Pods
+
+```bash
+kubectl get pods -n monitoring
+```
+
+**Roman Urdu:** Check karein sab pods running hain ya nahi (prometheus, grafana, kube-state-metrics).
+
+---
+
+### 🌐 Step 13: Port Forward to Grafana
+
+```bash
+kubectl port-forward svc/prometheus-stack-grafana 3000:80 -n monitoring
+```
+
+**Access:** [http://localhost:3000](http://localhost:3000)
+
+**Login Info:**
+
+```bash
+kubectl get secret --namespace monitoring prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d
+```
+
+**Username:** admin
+**Password:** from above command
+
+**Roman Urdu:** Port forward se Grafana browser pe access karte hain.
+
+---
+
+### 💻 Grafana Access via PuTTY Tunnel
+
+1. Open PuTTY → Hostname: `ubuntu@<EC2-IP>`
+2. Connection → SSH → Auth → Browse `.ppk` file
+3. Connection → SSH → Tunnels → Source: 3000, Destination: localhost:3000 → Add
+4. Save session → Open → Login
+5. EC2 me run karein:
+
+```bash
+kubectl --namespace monitoring port-forward svc/prometheus-stack-grafana 3000:80
+```
+
+6. Browser: [http://localhost:3000](http://localhost:3000)
+
+**Roman Urdu:** Laptop ke localhost ko EC2 ke Grafana se connect karne ke liye tunnel banate hain.
+
+---
+
+### 🔁 Prometheus Access via Tunnel
+
+1. New tunnel: Source 9090 → Destination 9090
+2. Run EC2 me:
+
+```bash
+kubectl port-forward svc/prometheus-stack-kube-prom-prometheus 9090 -n monitoring
+```
+
+3. Browser: [http://localhost:9090](http://localhost:9090)
+
+**Roman Urdu:** Prometheus dashboard bhi access karte hain same tarah.
+
+---
+
+## ✅ Assignment
+
+1. Open Grafana → [http://localhost:3000](http://localhost:3000)
+2. Login using password from command
+3. Explore:
+
+   * Cluster metrics
+   * Node & Pod CPU usage
+   * Workload dashboards
+4. Bonus: Create custom dashboard → Top 5 pods by memory usage
+
+**Roman Urdu:** Grafana explore kar ke real-time metrics aur dashboards ko analyze karte hain aur ek custom dashboard bana ke practice karte hain.
+
+---
