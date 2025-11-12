@@ -1,0 +1,184 @@
+# ✅ GitOps Practical Lab – Ubuntu EC2 (Argo CD & Flux)
+
+## Section 1: Install Docker
+
+```bash
+sudo apt update -y
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+docker --version
+```
+
+## Section 2: Install Minikube
+
+```bash
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo chmod +x minikube
+sudo mv minikube /usr/local/bin/
+sudo adduser minikubeuser
+sudo usermod -aG sudo minikubeuser
+sudo usermod -aG docker minikubeuser
+su - minikubeuser
+minikube start
+```
+
+## Section 3: Install kubectl CLI
+
+```bash
+sudo snap install kubectl --classic
+kubectl version --client
+```
+
+## Section 4: Install Argo CD CLI
+
+```bash
+curl -sSL https://github.com/argoproj/argo-cd/releases/download/v2.4.4/argocd-linux-amd64 -o argocd
+chmod +x argocd
+sudo mv argocd /usr/local/bin/
+argocd version
+```
+
+## Section 5: Deploy Argo CD in Kubernetes
+
+```bash
+su - minikubeuser
+docker ps
+minikube status
+minikube start
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl port-forward svc/argocd-server -n argocd 8081:80
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+
+## Section 6: Connect GitHub Repo
+
+```bash
+argocd login localhost:8081 --insecure
+argocd repo add https://github.com/shan376/myn46 \
+  --username shan376 \
+  --password <your-github-token-here>
+```
+
+⚠️ **Note:** Replace `<your-github-token-here>` with your new personal access token (never share it publicly).
+
+## Section 7: Create & Sync App
+
+```bash
+mkdir -p ~/myn46/manifests
+nano ~/myn46/manifests/deployment.yaml
+```
+
+Deployment YAML:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myn46-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myn46
+  template:
+    metadata:
+      labels:
+        app: myn46
+    spec:
+      containers:
+      - name: myn46
+        image: nginx
+        ports:
+        - containerPort: 80
+```
+
+Service YAML:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myn46-service
+spec:
+  selector:
+    app: myn46
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+```
+
+Git setup:
+
+```bash
+cd ~/myn46
+git config --global user.name "Shan376"
+git config --global user.email "shanzafar046@gmail.com"
+git init
+git remote add origin https://github.com/shan376/myn46
+git add .
+git commit -m "Add manifests for Argo CD"
+git push -u origin main
+```
+
+Argo CD App:
+
+```bash
+argocd app create myn46-app \
+  --repo https://github.com/shan376/myn46 \
+  --path manifests \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default
+argocd app sync myn46-app
+kubectl get pods
+```
+
+## Section 8: Test GitOps Deployment
+
+```bash
+nano ~/myn46/manifests/deployment.yaml
+# Change image: nginx -> nginx:1.21
+git add deployment.yaml
+git commit -m "Update nginx image version to 1.21"
+git push origin main
+```
+
+## Section 9: (Optional) Install Flux
+
+```bash
+curl -s https://fluxcd.io/install.sh | sudo bash
+flux --version
+flux create source git my-app-repo \
+  --url=https://github.com/shan376/myn46 \
+  --branch=main
+flux create kustomization my-app \
+  --source=GitRepository/my-app-repo \
+  --path="./" \
+  --prune=true \
+  --interval=10m
+```
+
+## Section 10: Cleanup
+
+```bash
+argocd app delete my-app --cascade
+kubectl delete namespace argocd
+flux delete kustomization my-app
+```
+
+✅ **Assignment Checklist**
+
+* Install Docker & Minikube ✅
+* Setup non-root user for Minikube ✅
+* Install kubectl & Argo CD CLI ✅
+* Deploy Argo CD in Minikube ✅
+* Connect GitHub Repo ✅
+* Sync app & test GitOps flow ✅
+* Optional: Install and test Flux 🔲
+* Upload YAML & lab screenshots to GitHub 🔲
+
+---
+
