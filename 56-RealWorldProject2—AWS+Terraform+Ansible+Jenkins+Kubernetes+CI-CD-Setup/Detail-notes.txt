@@ -1,0 +1,315 @@
+🏗️ Phase 1 — Core Infrastructure Setup
+Step 0 — Prerequisites
+1.	AWS Free-tier Account → Console pe login karo.
+2.	IAM User with AdministratorAccess.
+3.	Access Key ID & Secret Access Key generate karo (ye AWS CLI ke liye chahiye).
+4.	Local system ya control EC2 pe Ubuntu 22.04 machine ready honi chahiye.
+💡 Ye sari cheeze manual AWS Console pe run hongi.
+________________________________________
+Step 1 — AWS CLI Configuration
+Install AWS CLI (Ubuntu / EC2)
+sudo apt update
+sudo apt install awscli -y
+[WHERE TO RUN]: Local machine ya control EC2
+[WHY]: AWS resources manage karne ke liye CLI chahiye
+Configure AWS CLI
+aws configure
+•	Enter Access Key ID
+•	Enter Secret Access Key
+•	Default region: ap-south-1 (Mumbai)
+•	Default output: json
+[WHERE TO RUN]: Same machine
+[WHY]: Terraform aur CLI commands AWS ke sath authenticate karenge
+Check configuration:
+aws s3 ls
+Agar buckets list show ho gayi → config successful
+________________________________________
+Step 2 — Terraform Installation
+Install Terraform
+sudo apt update
+sudo apt install -y unzip curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+sudo apt-add-repository "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt update && sudo apt install terraform -y
+Check Terraform version:
+terraform -v
+[WHERE TO RUN]: Control EC2 / Local Ubuntu
+[WHY]: Infrastructure as Code ke liye Terraform chahiye
+________________________________________
+Step 3 — Terraform Project Setup
+Folder Structure
+mkdir -p ~/RealWorldProject2/terraform
+cd ~/RealWorldProject2/terraform
+touch main.tf variables.tf outputs.tf
+________________________________________
+Step 3a — Terraform Code (main.tf)
+# VPC
+resource "aws_vpc" "main_vpc" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  tags = { Name = "DevOps-VPC" }
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main_vpc.id
+  tags = { Name = "DevOps-IGW" }
+}
+
+# Public Subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.main_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+  tags = { Name = "Public-Subnet" }
+}
+
+# Security Group
+resource "aws_security_group" "web_sg" {
+  name        = "web-sg"
+  description = "Allow SSH and HTTP"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# EC2 Instance
+resource "aws_instance" "web_server" {
+  ami           = "ami-0dee22c13ea7a9a67" # Ubuntu 22.04 Mumbai
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  key_name      = "my-key"  # apne key-pair ka naam
+  tags = { Name = "Web-Server" }
+}
+[WHERE TO RUN]: Control EC2 / Local Ubuntu
+[WHY]: AWS me infra create karne ke liye
+________________________________________
+Step 3b — Terraform Commands
+1.	Initialize Terraform:
+terraform init
+Purpose: Terraform providers download aur setup karna
+2.	Plan Terraform:
+terraform plan
+Purpose: Ye check karega kya resources create honge, koi mistake nahi
+3.	Apply Terraform:
+terraform apply
+Confirm with yes
+Purpose: AWS me actual infrastructure create hoga
+________________________________________
+Step 4 — Ansible Setup (Configure EC2)
+Install Ansible
+sudo apt update
+sudo apt install ansible -y
+[WHERE TO RUN]: Control EC2
+[WHY]: Automation ke liye
+Create Inventory
+[web]
+<EC2_PUBLIC_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-key.pem
+Create Playbook (webserver.yml)
+- hosts: web
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+    - name: Start Nginx
+      service:
+        name: nginx
+        state: started
+Run Playbook
+ansible-playbook -i inventory.ini webserver.yml
+[WHERE TO RUN]: Control EC2
+[WHY]: EC2 pe Nginx install aur start karna
+________________________________________
+✅ Phase 1 Outcome
+•	AWS VPC + Public Subnet + EC2 + SG ready
+•	EC2 pe Nginx installed using Ansible
+•	Control EC2 ready for Phase 2 (Jenkins / Kubernetes / CI-CD)
+🏗️ Phase 2 — CI/CD + Kubernetes + Monitoring (Production Ready)
+________________________________________
+Step 0 — Prerequisites
+•	Phase 1 complete hona chahiye: EC2 ready, Nginx installed, Terraform + Ansible applied.
+•	Docker installed on EC2 (Control node or Jenkins server).
+•	kubectl installed and configured for your Kubernetes cluster (if using k8s).
+•	Jenkins server EC2 ready with public IP.
+💡 Ye Phase 2 main Control EC2 / Jenkins EC2 pe run hoga.
+________________________________________
+Step 1 — Install Docker on EC2
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker ubuntu
+[WHERE TO RUN]: Jenkins / Control EC2
+[WHY]: Docker containers build aur deploy karne ke liye required
+Check Docker version:
+docker --version
+________________________________________
+Step 2 — Kubernetes Setup (Optional for production)
+Install Minikube (for local Kubernetes)
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube start --driver=none
+Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+[WHERE TO RUN]: Control EC2
+[WHY]: Kubernetes cluster ke sath app deploy karne ke liye
+________________________________________
+Step 3 — Jenkins Installation
+Install Jenkins on EC2
+sudo apt update
+sudo apt install -y openjdk-11-jdk
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install -y jenkins
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+Check Jenkins status:
+sudo systemctl status jenkins
+[WHERE TO RUN]: Jenkins EC2
+[WHY]: CI/CD pipeline ke liye Jenkins server ready karne ke liye
+________________________________________
+Step 3a — Jenkins Initial Setup
+1.	Access Jenkins: http://<JENKINS_PUBLIC_IP>:8080
+2.	Unlock using:
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+3.	Install recommended plugins.
+4.	Create admin user.
+________________________________________
+Step 4 — Jenkins Docker & Kubernetes Integration
+1.	Install Docker plugin in Jenkins.
+2.	Install Kubernetes plugin (if using k8s deployment).
+3.	Configure DockerHub credentials in Jenkins:
+o	Username: <DOCKERHUB_USERNAME>
+o	Password / Token
+[WHERE TO RUN]: Jenkins Web UI
+[WHY]: Jenkins pipeline se Docker images push/pull karne ke liye
+________________________________________
+Step 5 — CI/CD Pipeline Setup
+Create Jenkinsfile in Repo
+pipeline {
+  agent any
+  environment {
+    DOCKERHUB_USER = '<DOCKERHUB_USERNAME>'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        git 'https://github.com/<USERNAME>/RealWorldProject2.git'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t $DOCKERHUB_USER/web:latest .'
+      }
+    }
+    stage('Push Docker Image') {
+      steps {
+        sh 'docker push $DOCKERHUB_USER/web:latest'
+      }
+    }
+    stage('Deploy to Kubernetes') {
+      steps {
+        sh 'kubectl apply -f k8s-manifests/'
+      }
+    }
+  }
+}
+[WHERE TO RUN]: Jenkins pipeline
+[WHY]: Git → Docker build → Push → Kubernetes deploy automation ke liye
+________________________________________
+Step 6 — Kubernetes Deployment Files
+deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata: { labels: { app: web } }
+    spec:
+      containers:
+      - name: web
+        image: <DOCKERHUB_USERNAME>/web:latest
+        ports: [{ containerPort: 80 }]
+service.yaml
+apiVersion: v1
+kind: Service
+metadata: { name: web-svc }
+spec:
+  type: NodePort
+  selector: { app: web }
+  ports: [{ port: 80, targetPort: 80 }]
+ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: web-ingress }
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-svc
+                port: { number: 80 }
+[WHERE TO RUN]: Git Repo → Jenkins pipeline → kubectl apply
+[WHY]: App ko Kubernetes cluster me deploy karne ke liye
+________________________________________
+Step 7 — Monitoring with Prometheus & Grafana
+Install Helm
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+Deploy Prometheus
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/prometheus -f monitoring/prometheus-values.yaml
+Deploy Grafana
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+helm install grafana grafana/grafana
+[WHERE TO RUN]: Control EC2 / Jenkins EC2 (kubectl access required)
+[WHY]: Cluster & application monitoring ke liye
+________________________________________
+Step 8 — Pro-Level Enhancements
+•	Private subnets + NAT Gateway (Terraform me add karo).
+•	HTTPS with cert-manager + LetsEncrypt (Ingress ke sath).
+•	RBAC for Jenkins & Kubernetes.
+•	Horizontal Pod Autoscaler (HPA) for auto scaling.
+________________________________________
+✅ Phase 2 Outcome
+•	CI/CD pipeline fully automated (Git → Docker → Kubernetes).
+•	Prometheus + Grafana monitoring configured.
+•	Production-ready architecture with Nginx app deployed on EC2/K8s.
+•	Jenkins pipeline ready for future updates.

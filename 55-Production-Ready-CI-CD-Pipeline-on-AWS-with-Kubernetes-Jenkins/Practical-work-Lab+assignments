@@ -1,0 +1,291 @@
+# 🔹 Practical Work & Assignments — Real World CI/CD Project
+
+---
+
+## **Step 1 — AWS Networking Setup**
+
+### **VPC Creation**
+
+* AWS Console → VPC → Create VPC
+
+```
+Name: devops-vpc
+CIDR: 10.0.0.0/16
+Tenancy: default
+```
+
+*Ye network cluster aur Jenkins ke liye base provide karta hai.*
+
+### **Subnets**
+
+* 3 Public (bastion ke liye) + 3 Private (Master, Worker, Jenkins)
+
+```
+public-subnet-1: 10.0.1.0/24 (us-east-1a)
+public-subnet-2: 10.0.2.0/24 (us-east-1b)
+public-subnet-3: 10.0.3.0/24 (us-east-1c)
+private-subnet-1: 10.0.4.0/24
+private-subnet-2: 10.0.5.0/24
+private-subnet-3: 10.0.6.0/24
+```
+
+### **Internet Gateway & NAT Gateway**
+
+* IGW attach karo VPC me → public subnets ke liye internet access
+* NAT Gateway → public-subnet-1 me deploy karo → private nodes internet ke liye use karenge
+
+### **Route Tables**
+
+* Public RT → 0.0.0.0/0 → IGW → attach public subnets
+* Private RT → 0.0.0.0/0 → NAT → attach private subnets
+
+### **Security Groups**
+
+* Bastion, Jenkins, Master, Worker, ALB ke liye SGs create karo
+* Inbound/Outbound rules follow karo commands ke according
+
+### **EC2 Instances**
+
+* Jenkins → private-subnet-1, t3.medium, Jenkins-SG
+* K8s Master → private-subnet-2, t3.medium, Master-SG
+* K8s Worker → private-subnet-3, t3.small, Worker-SG
+* Bastions x3 → public subnets, t3.micro
+
+---
+
+## **Step 2 — Base Prep (MASTER / WORKER / JENKINS)**
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+sudo apt install -y curl apt-transport-https ca-certificates gnupg lsb-release
+```
+
+*Swap disable karna zaroori hai kubelet ke liye.*
+
+---
+
+## **Step 3 — Container Runtime (containerd)**
+
+```bash
+sudo apt install -y containerd
+sudo mkdir -p /etc/containerd
+sudo containerd config default | sudo tee /etc/containerd/config.toml
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+```
+
+*SystemdCgroup true karna pods crash se bachata hai.*
+
+---
+
+## **Step 4 — Install kubeadm, kubelet, kubectl**
+
+```bash
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+*kubectl Jenkins node pe bhi install karo.*
+
+---
+
+## **Step 5 — Initialize Master**
+
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl get nodes
+```
+
+*Kubeadm join command note karo.*
+
+---
+
+## **Step 6 — Install Calico CNI**
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+sudo sysctl -w net.ipv4.ip_forward=1
+echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
+```
+
+---
+
+## **Step 7 — Join Workers**
+
+```bash
+sudo kubeadm reset -f
+sudo systemctl restart kubelet
+sudo kubeadm join <MASTER_IP>:6443 --token <TOKEN> --discovery-token-ca-cert-hash sha256:<HASH>
+kubectl get nodes  # MASTER pe check
+```
+
+---
+
+## **Step 8 — Jenkins Node Setup**
+
+```bash
+sudo apt install -y openjdk-17-jdk docker.io
+sudo usermod -aG docker jenkins
+sudo systemctl enable --now docker
+sudo systemctl restart jenkins
+# kubectl install (same as Step 4)
+```
+
+---
+
+## **Step 9 — Jenkins ServiceAccount + RBAC**
+
+```bash
+kubectl create namespace jenkins
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+  namespace: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jenkins-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: jenkins
+  namespace: jenkins
+EOF
+```
+
+Generate kubeconfig:
+
+```bash
+TOKEN=$(kubectl create token jenkins -n jenkins --duration=87600h)
+APISERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+CA_DATA=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+cat > jenkins.kubeconfig <<EOF
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    certificate-authority-data: ${CA_DATA}
+    server: ${APISERVER}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: jenkins
+  name: jenkins@kubernetes
+current-context: jenkins@kubernetes
+users:
+- name: jenkins
+  user:
+    token: ${TOKEN}
+EOF
+```
+
+---
+
+## **Step 10 — Secure Kubeconfig with IAM + S3**
+
+```bash
+aws s3 mb s3://jenkins-kubeconfig-bucket --region us-east-1
+aws s3 cp jenkins.kubeconfig s3://jenkins-kubeconfig-bucket/
+aws s3 cp s3://jenkins-kubeconfig-bucket/jenkins.kubeconfig /var/lib/jenkins/.kube/config
+sudo chown -R jenkins:jenkins /var/lib/jenkins
+kubectl --kubeconfig=/var/lib/jenkins/.kube/config get nodes
+```
+
+---
+
+## **Step 11 — GitHub Repo + App Files**
+
+* Repo: `sample-app`
+* Jenkinsfile, `app.py`, `Dockerfile`, `k8s/k8s-deployment.yaml` create karo
+* Push to GitHub:
+
+```bash
+git add .
+git commit -m "Initial commit - sample app with files"
+git push origin main
+```
+
+---
+
+## **Step 12 — Jenkins Pipeline Setup (UI)**
+
+* Jenkins UI → New Item → Pipeline → SCM: Git → Jenkinsfile path root
+* Credentials: DockerHub, (optional) GitHub
+* Run pipeline → verify 5 stages: Clone, Build, Push, Deploy, Verify
+
+---
+
+## **Step 13 — Rolling Update & Rollback**
+
+```bash
+kubectl set image deployment/sample-app sample-app=your-dockerhub-user/sample-app:v2 --record
+kubectl rollout status deployment/sample-app
+kubectl rollout undo deployment/sample-app
+```
+
+---
+
+## **Step 14 — Monitoring (Prometheus + Grafana)**
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+kubectl create ns monitoring
+helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --set grafana.resources.requests.memory=128Mi
+kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80
+```
+
+* Browser: `http://localhost:3000` → admin / prom-operator
+
+---
+
+## **Step 15 — Testing & Access**
+
+* **App access (private cluster)**:
+
+  * SSH Tunnel via Bastion
+  * NodePort / ALB
+
+```bash
+ssh -L 8080:<Worker-Node-IP>:<NodePort> ubuntu@<Bastion-Public-IP>
+http://localhost:8080
+```
+
+* **Grafana**: Port-forward + SSH Tunnel
+
+---
+
+## ✅ **Assignment / Portfolio Ready Checklist**
+
+* VPC + 6 Subnets ✅
+* IGW + NAT + Route Tables ✅
+* Security Groups configured ✅
+* EC2: Jenkins, Master, Worker, Bastions ✅
+* K8s cluster (Master + Worker) ✅
+* containerd & systemd fix ✅
+* Calico installed ✅
+* Jenkins installed + Docker + kubectl ✅
+* Jenkins SA kubeconfig secure via S3 ✅
+* Pipeline: Clone → Build → Push → Deploy → Verify ✅
+* Rolling update & rollback ✅
+* Monitoring: Prometheus + Grafana ✅
+
+---

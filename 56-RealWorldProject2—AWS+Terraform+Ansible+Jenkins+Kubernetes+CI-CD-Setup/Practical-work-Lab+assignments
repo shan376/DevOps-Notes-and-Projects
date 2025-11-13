@@ -1,0 +1,143 @@
+# Practical Work + Assignments — RealWorldProject2
+
+🏗️ Phase 1 — Core Infrastructure Setup
+
+Step 1 — AWS CLI Configuration
+1. Install AWS CLI:
+sudo apt update
+sudo apt install awscli -y
+2. Configure AWS CLI:
+aws configure
+• Access Key ID + Secret Access Key
+• Default region: ap-south-1
+• Default output: json
+3. Test config:
+aws s3 ls
+✅ Outcome: AWS CLI ready, buckets list show honi chahiye
+
+Step 2 — Terraform Installation
+1. Install Terraform:
+sudo apt update && sudo apt install -y unzip curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+sudo apt-add-repository "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt update && sudo apt install terraform -y
+2. Check version:
+terraform -v
+✅ Outcome: Terraform installed aur ready
+
+Step 3 — Terraform Project Setup
+1. Folder setup:
+mkdir -p ~/RealWorldProject2/terraform
+cd ~/RealWorldProject2/terraform
+touch main.tf variables.tf outputs.tf
+2. Add main.tf code for VPC, Subnet, Security Group aur EC2
+3. Terraform commands:
+terraform init      # Providers setup
+terraform plan      # Resources check
+terraform apply     # AWS infra create, confirm yes
+✅ Outcome: AWS VPC + Public Subnet + EC2 + SG ready
+
+Step 4 — Ansible Setup (Configure EC2)
+1. Install Ansible:
+sudo apt update
+sudo apt install ansible -y
+2. Inventory file create:
+[web]
+<EC2_PUBLIC_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/my-key.pem
+3. Playbook create (webserver.yml):
+- hosts: web
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+    - name: Start Nginx
+      service:
+        name: nginx
+        state: started
+4. Run Playbook:
+ansible-playbook -i inventory.ini webserver.yml
+✅ Outcome: EC2 pe Nginx install aur start ho gaya
+
+🏗️ Phase 2 — CI/CD + Kubernetes + Monitoring
+
+Step 1 — Install Docker on EC2
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker ubuntu
+docker --version
+✅ Outcome: Docker ready, containers build & deploy ke liye
+
+Step 2 — Kubernetes Setup (Optional)
+1. Install Minikube:
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube start --driver=none
+2. Install kubectl:
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+✅ Outcome: Kubernetes cluster ready
+
+Step 3 — Jenkins Installation
+sudo apt update
+sudo apt install -y openjdk-11-jdk
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install -y jenkins
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+✅ Outcome: Jenkins server ready
+
+Step 3a — Jenkins Initial Setup
+1. Access Jenkins: http://<JENKINS_PUBLIC_IP>:8080
+2. Unlock using initial admin password
+3. Install recommended plugins
+4. Create admin user
+✅ Outcome: Jenkins Web UI ready
+
+Step 4 — Jenkins Docker & Kubernetes Integration
+1. Install Docker plugin + Kubernetes plugin
+2. Configure DockerHub credentials:
+o Username + Password/Token
+✅ Outcome: Jenkins ready Docker push/pull ke liye
+
+Step 5 — CI/CD Pipeline Setup
+1. Jenkinsfile create in Repo:
+pipeline {
+  agent any
+  environment { DOCKERHUB_USER = '<DOCKERHUB_USERNAME>' }
+  stages {
+    stage('Checkout') { git 'https://github.com/<USERNAME>/RealWorldProject2.git' }
+    stage('Build Docker Image') { sh 'docker build -t $DOCKERHUB_USER/web:latest .' }
+    stage('Push Docker Image') { sh 'docker push $DOCKERHUB_USER/web:latest' }
+    stage('Deploy to Kubernetes') { sh 'kubectl apply -f k8s-manifests/' }
+  }
+}
+✅ Outcome: Git → Docker → Kubernetes automation ready
+
+Step 6 — Kubernetes Deployment Files
+1. deployment.yaml → 2 replicas, image: <DOCKERHUB_USERNAME>/web:latest
+2. service.yaml → NodePort, port 80
+3. ingress.yaml → / path routing to web-svc
+kubectl apply -f k8s-manifests/
+✅ Outcome: App deployed on Kubernetes
+
+Step 7 — Monitoring with Prometheus & Grafana
+1. Install Helm: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+2. Deploy Prometheus: helm repo add + update + install
+3. Deploy Grafana: helm repo add + update + install
+✅ Outcome: Cluster & app monitoring ready
+
+Step 8 — Pro-Level Enhancements (Assignments)
+• Private subnets + NAT Gateway (Terraform)
+• HTTPS with cert-manager + LetsEncrypt
+• RBAC for Jenkins & Kubernetes
+• Horizontal Pod Autoscaler (HPA)
+✅ Outcome: Production-ready infra, CI/CD + Monitoring fully functional

@@ -1,0 +1,698 @@
+Real world project one
+create a full CD/CD pipelines
+Complete Production-Ready Notes — AWS Networking + K8s (kubeadm) + Jenkins CI/CD 
+________________________________________
+# Step 1- Networking 
+	VPC Creation
+1.	AWS Console → VPC Service → "Create VPC".
+2.	Select VPC only option.
+3.	Details:
+o	Name: devops-vpc
+o	CIDR Block: 10.0.0.0/16
+o	Tenancy: Default
+o	Create
+________________________________________
+	Subnets
+Hum 6 subnets banayenge:
+•	3Public Subnets (for 3Bastions)
+•	3Private Subnets (for K8s Master + Worker + jenkins)
+🔹 Public Subnet 1:
+•	Name: public-subnet-1
+•	VPC: devops-vpc
+•	AZ: us-east-1a
+•	CIDR: 10.0.1.0/24
+🔹 Public Subnet 2:
+•	Name: public-subnet-2
+•	VPC: devops-vpc
+•	AZ: us-east-1b
+•	CIDR: 10.0.2.0/24
+🔹 Public Subnet 3:
+•	Name: public-subnet-3
+•	VPC: devops-vpc
+•	AZ: us-east-1c
+•	CIDR: 10.0.3.0/24
+🔹 Private Subnet 1:
+•	Name: private-subnet-1
+•	VPC: devops-vpc
+•	AZ: us-east-1a
+•	CIDR: 10.0.4.0/24
+🔹 Private Subnet 2:
+•	Name: private-subnet-2
+•	VPC: devops-vpc
+•	AZ: us-east-1b
+•	CIDR: 10.0.5.0/24
+🔹 Private Subnet 3:
+•	Name: private-subnet-3
+•	VPC: devops-vpc
+•	AZ: us-east-1c
+•	CIDR: 10.0.6.0/24
+________________________________________
+	Internet Gateway (IGW)
+VPC Dashboard → Internet Gateways → Create IGW
+o	Name: devops-igw
+2.	Attach this IGW to devops-vpc
+Roman Urdu: Ye gateway hume internet access deta hai public subnets ke liye.
+________________________________________
+
+	NAT Gateway
+1.	EC2 Dashboard → Elastic IP → Allocate new EIP
+2.	NAT Gateway → Create
+o	Subnet: public-subnet-1
+o	Elastic IP: jo allocate kiya
+o	Name: devops-nat
+________________________________________
+	Route Tables
+🔹 Public Route Table
+•	Name: public-rt
+•	VPC: devops-vpc
+•	Route:
+0.0.0.0/0 → devops-igw
+•	Subnet Association: public-subnet-1, public-subnet-2, public-subnet-3
+🔹 Private Route Table
+•	Name: private-rt
+•	VPC: devops-vpc
+•	Route:
+0.0.0.0/0 → devops-nat
+•	Subnet Association: private-subnet-1, private-subnet-2, private-subnet-3
+________________________________________
+	Security Groups
+Ab 5 SGs banate hain:
+1) Jenkins-SG
+•	Inbound:
+o	22 (SSH) →bastion-sg
+o	8080(custom tcp) to alb-sg
+      Outbound: only outbound 6443 to Master SG
+•	443 (HTTPS) to 0.0.0.0/0 (for GitHub, DockerHub, plugins)
+•	All traffic to 0.0.0.0/0 
+2) Master-SG
+•	Inbound:
+o	22 (SSH) → Bastion-SG
+o	6443 (K8s API) → jenkins-sg
+o	6443 (K8s API) → worker-sg
+•	Outbound: All
+3) Worker-SG
+•	Inbound:
+o	22 (SSH) → Bastion-SG
+o	10250 (Kubelet) → Master-SG
+o	(Optional) 30000–32767 from 0.0.0.0/0
+•	Outbound: All
+4) Bastion-SG
+•	Inbound:
+o	22 (SSH) → Your IP
+•	Outbound: All
+5) alb-SG
+o	Name: alb-sg
+o	VPC: devops-vpc
+o	Inbound rules:
+	HTTP (80) → 0.0.0.0/0 (ya apna IP for security)
+o	Outbound: All
+________________________________________
+	EC2 Instances
+Note: select devops-vpc  for all nodes.
+1.	Jenkins Server
+o	Subnet: private-subnet-1
+o	SG: Jenkins-SG
+o	Size: t3.medium
+2.	K8s Master
+o	Subnet: private-subnet-2
+o	SG: Master-SG
+o	Size: t3.medium
+3.	K8s Worker
+o	Subnet: private-subnet-3
+o	SG: Worker-SG
+o	Size: t3.small
+4.	Bastion Nodes (x3 for HA)
+o	Subnet: public-subnet-1 and public-subnet-2, public-subnet-3
+o	SG: Bastion-SG
+o	Size: t3.micro
+________________________________________
+# Step 2— Base Prep on ALL nodes (MASTER / WORKER / JENKINS)
+# On MASTER / WORKER / JENKINS
+sudo apt update && sudo apt upgrade -y
+
+# disable swap for kubelet
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+# Install common tools
+sudo apt install -y curl apt-transport-https ca-certificates gnupg lsb-release
+Roman Urdu: "Swap disable karna zaroori hai warna kubelet subscribe nahi karega."
+________________________________________
+# Step 3 — Container runtime: containerd (MASTER / WORKER)
+# MASTER / WORKER
+sudo apt update
+sudo apt install -y containerd
+
+sudo mkdir -p /etc/containerd
+sudo containerd config default | sudo tee /etc/containerd/config.toml
+
+# set systemd cgroup to true (required)
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+Roman Urdu: "SystemdCgroup true hona chahiye warna pods CrashLoopBackOff me ja sakte hain."
+________________________________________
+# Step 4 — Install kubeadm, kubelet, kubectl (MASTER / WORKER)
+# MASTER / WORKER / (kubectl also can be installed on JENKINS)
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+# Add Kubernetes repo (v1.30 example - change as needed)
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+Roman Urdu: "kubectl ko Jenkins node pe bhi install karo taake Jenkins se kubectl run kar sake (ya phir kubeconfig Jenkins ke paas ho)."
+________________________________________
+# Step 5 — Initialize Master (MASTER)
+Option A (simple):
+# MASTER
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+Option B (config file — recommended for production):
+Create kubeadm-config.yaml (example minimal):
+nano kubeadm-config.yaml
+
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "<MASTER_PRIVATE_IP>"   # replace
+  bindPort: 6443
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: stable
+networking:
+  podSubnet: "192.168.0.0/16"
+Run:
+sudo kubeadm init --config kubeadm-config.yaml --upload-certs
+After init (MASTER):
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# verify
+kubectl get nodes
+Roman Urdu: "Init ke baad kubeadm join command console me dikhayega — isko safe jagah store karo ya S3 me upload karo (encrypted)."
+________________________________________
+# Step 6 — Install CNI (Calico) (MASTER)
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+
+# If pods pending due to IP forwarding
+sudo sysctl -w net.ipv4.ip_forward=1
+echo 'net.ipv4.ip_forward=1' | sudo tee -a /etc/sysctl.conf
+Roman Urdu: "Calico apply karne ke baad kuch pods Pending ho sakte hain; IP forward enable se fix ho jata hai."
+________________________________________
+# Step 7 — Join Workers (WORKER)
+# WORKER
+sudo kubeadm reset -f   # agar retry kar rahe ho
+sudo systemctl restart kubelet
+
+# run the join command provided earlier, e.g.:
+sudo kubeadm join <MASTER_IP>:6443 --token <TOKEN> --discovery-token-ca-cert-hash sha256:<HASH>
+MASTER par check:
+# MASTER
+kubectl get nodes
+Roman Urdu: "Agar join me error aye to kubeadm reset -f phir try karo."
+________________________________________
+# Step 8 — Jenkins Setup (JENKINS node)
+Install Java + Jenkins + Docker + kubectl
+# JENKINS (Ubuntu 22.04)
+sudo apt update && sudo apt upgrade -y
+
+# Java 17
+sudo apt install -y openjdk-17-jdk
+java -version
+
+# Jenkins repo
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
+
+sudo apt update
+sudo apt install -y jenkins
+
+# Docker
+sudo apt install -y docker.io
+sudo usermod -aG docker jenkins
+sudo usermod -aG docker ubuntu  # if using ubuntu user
+sudo systemctl enable --now docker
+
+# Restart Jenkins so docker group change applies
+sudo systemctl restart jenkins
+sudo systemctl enable --now jenkins
+
+# Install kubectl (as earlier)
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubectl
+
+Roman Urdu: "Jenkins ko Docker access chahiye — isliye jenkins user ko docker group me daala. Restart Jenkins zaroor karo."
+________________________________________
+# Step 9 — Create Jenkins ServiceAccount + RBAC on Cluster (MASTER)
+# MASTER
+kubectl create namespace jenkins
+
+# ServiceAccount + ClusterRoleBinding (cluster-admin for demo; limit in production)
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+  namespace: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jenkins-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: jenkins
+  namespace: jenkins
+EOF
+Generate kubeconfig for this SA and upload to S3:
+# MASTER
+# 1) create long lived token (k8s v1.24+)
+TOKEN=$(kubectl create token jenkins -n jenkins --duration=87600h)
+
+# 2) capture CA and API server
+APISERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+CA_DATA=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+
+# 3) create kubeconfig file
+cat > jenkins.kubeconfig <<EOF
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    certificate-authority-data: ${CA_DATA}
+    server: ${APISERVER}
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: jenkins
+  name: jenkins@kubernetes
+current-context: jenkins@kubernetes
+users:
+- name: jenkins
+  user:
+    token: ${TOKEN}
+EOF
+
+# Verify locally
+KUBECONFIG=jenkins.kubeconfig kubectl get nodes
+Roman Urdu: "Agar kubectl get nodes chal gaya to kubeconfig sahi hai. Ab isko S3 pe secure tarike se upload karenge."
+________________________________________
+# Step 10 —Secure Kubeconfig Storage with IAM + S3 (MASTER + JENKINS)
+1️. IAM User Creation (AWS Console)
+•	AWS Console → IAM → Users → Add User
+o	Name: jenkins-s3-user
+o	Access Type: Programmatic access
+•	Permissions:
+o	Attach existing policy → AmazonS3FullAccess (for demo; in production create custom policy with least privilege)
+•	Create & download:
+o	Save Access Key ID and Secret Access Key
+ Roman Urdu: "Ye IAM user Jenkins aur Master dono ko S3 bucket use karne ki permission dega."
+
+2️. Install AWS CLI (MASTER + JENKINS)
+sudo apt update
+sudo apt install -y awscli
+aws --version
+
+3️. Configure AWS CLI (MASTER + JENKINS)
+Run:
+aws configure
+Enter values:
+•	AWS Access Key ID: <from IAM>
+•	AWS Secret Access Key: <from IAM>
+•	Default region: us-east-1
+•	Output format: json
+ Roman Urdu: "Ab dono nodes (master aur jenkins) AWS S3 se interact kar paenge."
+
+4️. Create S3 Bucket (MASTER)
+aws s3 mb s3://jenkins-kubeconfig-bucket --region us-east-1
+Verify:
+aws s3 ls
+
+5️. Upload Kubeconfig from Master
+aws s3 cp jenkins.kubeconfig s3://jenkins-kubeconfig-bucket/
+Verify:
+aws s3 ls s3://jenkins-kubeconfig-bucket/
+
+6️. Download Kubeconfig on Jenkins Node
+Jenkins node pe run:
+aws s3 cp s3://jenkins-kubeconfig-bucket/jenkins.kubeconfig /var/lib/jenkins/.kube/config
+Ensure folder exists:
+sudo mkdir -p /var/lib/jenkins/.kube
+sudo mv jenkins.kubeconfig /var/lib/jenkins/.kube/config
+sudo chown -R jenkins:jenkins /var/lib/jenkins/.kube
+
+7️. Verify Access from Jenkins
+kubectl --kubeconfig=/var/lib/jenkins/.kube/config get nodes
+Roman Urdu: "Agar Jenkins node se get nodes chal gaya to Jenkins successfully master se connect ho raha hai."
+________________________________________
+# Step 11 
+1️. GitHub pe ek naya repo banao
+•	Repo name: sample-app
+•	Public ya Private dono chalenge (agar private hai to Jenkins me GitHub credentials dene padhenge).
+2️. Apne local system ya Jenkins master pe repo clone karo
+
+git clone https://github.com/<tumhara-username>/sample-app.git
+cd sample-app
+Jenkinsfile 
+nano Jenkinsfile 
+
+pipeline {
+  agent any
+  environment {
+    DOCKERHUB_USER = "your-dockerhub-username"
+    IMAGE_NAME = "sample-app"
+    KUBECONFIG = "/var/lib/jenkins/.kube/config"
+  }
+  stages {
+    stage('Clone Code') {
+      steps {
+        git branch: 'main', url: 'https://github.com/your-username/sample-app.git'
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t $DOCKERHUB_USER/$IMAGE_NAME:${BUILD_NUMBER} .'
+      }
+    }
+
+    stage('Push to DockerHub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+          sh 'echo "$PASS" | docker login -u "$USER" --password-stdin'
+          sh 'docker push $DOCKERHUB_USER/$IMAGE_NAME:${BUILD_NUMBER}'
+        }
+      }
+    }
+
+    stage('Apply K8s Manifests') {
+      steps {
+        sh 'kubectl --kubeconfig=$KUBECONFIG apply -f k8s/'
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        sh 'kubectl --kubeconfig=$KUBECONFIG set image deployment/$IMAGE_NAME $IMAGE_NAME=$DOCKERHUB_USER/$IMAGE_NAME:${BUILD_NUMBER}'
+      }
+    }
+
+    stage('Verify Rollout') {
+      steps {
+        sh 'kubectl --kubeconfig=$KUBECONFIG rollout status deployment/$IMAGE_NAME --timeout=120s'
+      }
+    }
+  }
+}
+ app.py
+nano app.py
+
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Hello from Sample App CI/CD Pipeline!"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+Dockerfile
+nano Dockerfile
+
+FROM python:3.9-slim
+WORKDIR /app
+COPY app.py /app/
+RUN pip install flask
+CMD ["python", "app.py"]
+k8s/k8s-deployment.yaml
+mkdir k8s
+cd k8s
+nano k8s-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: sample-app
+        image: your-dockerhub-username/sample-app:latest
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+spec:
+  selector:
+    app: sample-app
+  ports:
+    - port: 80
+      targetPort: 5000
+  type: LoadBalancer
+
+3.	Files ko GitHub me push karo
+
+git add .
+git commit -m "Initial commit - sample app with files"
+git push origin main
+
+________________________________________
+# Step 12—Jenkins Pipeline Setup (Jenkins UI)
+1️. Jenkins UI open karo
+
+Note : Q k hmara jenkin node private subnet mn hai tu es liye hmary pas public ip ni hai eska aur hm esko neechay waly process ko fallow kr k access kain gay jenkin ui ko.
+a)	ALB ke liye Security Group
+All ready we made it see above. 
+ Roman Urdu: Ye SG internet se traffic lega aur Jenkins SG ko forward karega.
+b)	Jenkins SG update
+Jenkins-SG me ek inbound rule add karo:
+•	Port 8080 (TCP) → alb-sg
+👉 Roman Urdu: Is se ALB ka SG hi Jenkins ke 8080 port ko access kar payega.
+c)	Target Group banao
+1.	AWS Console → EC2 → Load Balancers → Target Groups → Create Target Group.
+o	Choose Instances type.
+o	Name: jenkins-tg
+o	VPC: devops-vpc
+o	Protocol: HTTP
+o	Port: 8080 (kyunki Jenkins 8080 pe chal raha hai)
+o	Health Check: HTTP → /login (Jenkins ka default login path)
+2.	Next → Targets select karo → Jenkins instance choose karo → Port 8080 set karo → Register targets.
+d)	Application Load Balancer banao
+1.	AWS Console → EC2 → Load Balancers → Create Load Balancer → Application Load Balancer.
+o	Name: jenkins-alb
+o	Scheme: Internet-facing
+o	IP Type: IPv4
+o	VPC: devops-vpc
+o	Subnets: Select all 3 public subnets (for HA).
+o	Security Group: alb-sg
+2.	Listener:
+o	Protocol: HTTP
+o	Port: 80
+o	Forward to Target Group: jenkins-tg
+3.	Create Load Balancer.
+e)	Test Access
+•	ALB ka DNS name lo (example: jenkins-alb-123456789.ap-south-1.elb.amazonaws.com).
+•	Browser me open karo:
+•	http://<ALB-DNS>:80
+•	Ye request ALB → Jenkins node (private subnet) → port 8080 forward karega.
+•	Tumhe Jenkins UI login page dikhega.
+
+2️. New Item create karo
+•	Left side → New Item click karo.
+•	Ek naam do (e.g., sample-app-pipeline).
+•	Pipeline select karo → OK karo
+3️. Job configure karo
+Ab tum pipeline job ke config page me ho.
+•	Pipeline section me jao.
+•	"Pipeline script from SCM" select karo.
+•	SCM = Git choose karo.
+•	Repository URL: https://github.com/<tumhara-username>/sample-app.git
+•	Branch: main
+•	Script Path: Jenkinsfile
+4.	Jenkins me Credentials Add karo
+1.	Jenkins → Manage Jenkins → Credentials.
+2.	Add DockerHub username + password (ID: dockerhub-creds).
+3.	(Optional) Agar GitHub private repo hai → GitHub credentials bhi add karo.
+
+5.	Pipeline Execution (build pipeline)
+•	Jenkins console me ye 5 stages dikhenge:
+•	[Pipeline] Start
+•	[Stage] Clone Code
+•	[Stage] Build Docker Image
+•	[Stage] Push to DockerHub
+•	[Stage] Deploy to Kubernetes
+•	[Stage] Verify Rollout
+•	SUCCESS
+Agar error aaye to console logs me exact issue dikh jaayega.
+
+________________________________________
+# Step 13 — Rolling Update & Rollback (MASTER / JENKINS)
+# update image (manual)
+kubectl set image deployment/sample-app sample-app=your-dockerhub-user/sample-app:v2 --record
+
+# verify rollout
+kubectl rollout status deployment/sample-app
+
+# rollback if required
+kubectl rollout undo deployment/sample-app
+Roman Urdu: "Jenkins pipeline me rollout verify section se ye automate ho jayega."
+
+________________________________________
+# Step 14 — Monitoring (MASTER)
+Grafana + Prometheus via Helm:
+# MASTER (or machine with helm)
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+kubectl create ns monitoring
+helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --set grafana.resources.requests.memory=128Mi
+# Port-forward Grafana
+kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80
+# then open http://localhost:3000  (admin / prom-operator)
+Roman Urdu: "Grafana ko lightweight resource requests diye taake small instance pe chal sake."
+
+________________________________________
+# Step 15 — Production Best Practices & Security Notes
+•	IAM Roles: EC2 instance ke liye IAM role use karo (static keys na rakho). ✔️
+•	S3 security: Bucket me SSE (SSE-S3 ya SSE-KMS) enable karo aur public access block rakho. ✔️
+•	RBAC: Jenkins ko least privilege do. cluster-admin sirf demo ke liye; production me restrict karo. ❗
+•	Secrets: Kubeconfig ko secrets manager ya SSM Parameter Store me store karna better hota hai.
+•	SSM Session Manager: SSH keys hata kar Session Manager use karna recommended hai.
+•	CloudTrail / GuardDuty: Account auditing & threat detection enable karo.
+•	Autoscaling & health checks: Worker nodes ke liye ASG consider karo.
+•	Backups: ETCD backup plan banao.
+•	Network ACLs / Security: Bastion SSH only from trusted IPs. NodePorts public exposure avoid karo.
+
+________________________________________
+# Step 16-Troubleshooting Quick Fixes 
+•	pods Pending after CNI: sudo sysctl -w net.ipv4.ip_forward=1 and check calico-node logs.
+•	kubeadm join fails: run sudo kubeadm reset -f on worker, restart kubelet, then re-run join.
+•	Docker permission: sudo usermod -aG docker jenkins && sudo systemctl restart jenkins.
+•	Jenkins pipeline docker build fails: ensure jenkins user in docker group and jenkins restarted.
+
+________________________________________
+# Step 17-Final Checklist (Portfolio Ready) ✔️
+•	 VPC + 3 public + 3 private subnets created
+•	 IGW + NAT Gateway + Route Tables configured
+•	 Security Groups: Bastion, Jenkins, Master, Worker created & locked down
+•	 EC2s: Bastions (3), Jenkins (private), Master (private), Workers (2) provisioned
+•	 SSH access via Bastion (ProxyJump) configured
+•	 Kubeadm cluster: Master + 1Workers ✅
+•	 containerd & kubelet systemd cgroup fix ✅
+•	 Calico CNI installed ✅
+•	 Jenkins installed + docker + kubectl ✅
+•	 Jenkins SA kubeconfig generated & securely uploaded to S3 ✅
+•	 Jenkins downloads kubeconfig via IAM role and runs kubectl ✅
+•	 Jenkinsfile pipeline: clone → build → push → deploy → verify ✅
+•	 Rolling update & rollback workflow validated ✅
+•	 Monitoring (Prometheus + Grafana) install
+
+P1
+🔹 Problem 1: Step 12 ke baad App Response kaise verify karein?
+✅ Solutions:
+Option A: NodePort + Bastion Port Forwarding (Quick Test)
+kubectl get svc sample-app-service
+ssh -L 8080:<Worker-Node-Private-IP>:<NodePort> ubuntu@<Bastion-Public-IP>
+http://localhost:8080
+
+Option B: Direct Pod Testing (Simplest)
+kubectl get pods -o wide
+curl http://<POD-IP>:5000
+
+Option C: Production-like (Recommended) → ALB
+•	Service ka type LoadBalancer rakho
+•	AWS automatically ALB allocate karega ya manual ALB banao
+
+🔹 Problem 2: Prometheus + Grafana UI Access (Step 13)
+Option A: SSH Tunnel via Bastion (Best for Private Clusters)
+ssh -L 3000:localhost:3000 ubuntu@<Bastion-Public-IP> -N -i <your-key.pem>
+kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80
+http://localhost:3000
+Login: admin / prom-operator
+
+Option B: Ingress + ALB (Production Style)
+1. Install AWS ALB Ingress Controller.
+2. Grafana service ko ClusterIP rakho.
+3. Ek Ingress banao jo ALB ke zariye Grafana ko expose kare.
+4. ALB DNS se direct access mil jayega.
+
+🔑 Summary:
+•	App Test:
+o	Quick: curl http://<POD-IP>:5000
+o	User-level: Bastion SSH Tunnel → NodePort
+o	Production: ALB bana ke service public karo
+•	Grafana/Prometheus Access:
+o	Quick: Port-forward master → Bastion SSH tunnel
+o	Production: ALB Ingress + Route53
+
+P2
+Option C (Recommended) — ALB setup for sample-app
+🔹 Step 1 — Decide Approach
+•	Agar AWS Load Balancer Controller install karo → ALB auto create
+•	Agar manual ALB → Jenkins jaise manual process
+
+🔹 Step 2 — Create Target Group
+1. AWS Console → EC2 → Target Groups → Create Target Group
+2. Settings:
+o	Target type: Instances
+o	Name: sample-app-tg
+o	VPC: devops-vpc
+o	Protocol: HTTP
+o	Port: 5000
+o	Health Check: Protocol HTTP, Path /
+3.	Register Targets: Worker nodes select karo, Port 5000
+
+🔹 Step 3 — Create Application Load Balancer
+1. AWS Console → EC2 → Load Balancers → Create Load Balancer
+2. Type: Application Load Balancer
+3. Settings:
+o	Name: sample-app-alb
+o	Scheme: Internet-facing
+o	IP type: IPv4
+o	VPC: devops-vpc
+o	Subnets: All 3 public subnets
+o	Security Group: alb-sg
+4.	Listener:
+o	Protocol: HTTP
+o	Port: 80
+o	Forward to: sample-app-tg
+
+🔹 Step 4 — Test Access
+•	ALB DNS Name milega
+•	Browser me http://<ALB-DNS>
+•	Flask app ka response: Hello from Sample App CI/CD Pipeline!
+
+⚠️ Note:
+•	Worker SG me allow inbound 5000 from alb-sg
+•	Warna ALB worker se connect nahi kar paayega.
+
+Note: S3 ki config kr lyna taa k security risk na rahy thuda bhi.
