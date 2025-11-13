@@ -1,0 +1,660 @@
+📘 AWS High Availability (HA) Multi-AZ and Multi-Region Setup
+________________________________________
+1.	AWS High Availability (HA)
+Definition:
+High Availability ka matlab hai ke tumhara application/service har waqt available rahe, even agar koi server ya datacenter down bhi ho jaye.
+AWS me HA achieve karne ka sabse powerful tareeqa hai Multi-AZ aur Multi-Region deployment.
+________________________________________
+Zarurat:
+•	Downtime minimize karna (system hamesha up rahe).
+•	Natural disaster, power outage, hardware failure ke bawajood services chalti rahein.
+•	Business continuity aur customer trust maintain karna.
+________________________________________
+Real-Life Example:
+•	Socho tum ek e-commerce website chala rahe ho.
+•	Agar sirf ek AZ me EC2 instance run kar rahe ho aur wo AZ crash ho gaya → pura site down.
+•	Multi-AZ use karke tum multiple AZs me instances run karoge → agar ek AZ down bhi ho, traffic doosre AZ pe redirect ho jata hai automatically.
+•	Multi-Region setup ka use tab hota hai jab tum global users serve kar rahe ho (e.g. Asia + US).
+________________________________________
+Key Concepts:
+•	Multi-AZ: Same region ke multiple Availability Zones (datacenters) me app deploy karna. Zyada reliability + low latency.
+•	Multi-Region: Multiple regions (e.g. us-east-1 + ap-south-1) me app deploy karna. Global scale + disaster recovery.
+•	Load Balancer (ALB/ELB): Traffic ko evenly distribute karta hai across instances.
+•	Auto Scaling: Demand ke hisaab se automatically instances launch/terminate karta hai.
+________________________________________
+2️. Multi-AZ Setup
+Definition:
+Ek hi AWS region ke multiple AZs me infrastructure deploy karna taa ke single AZ failure me bhi system chalti rahe.
+________________________________________
+Real-Life Example:
+•	Banking application jo downtime tolerate nahi kar sakti.
+•	Multi-AZ database (Aurora RDS) use hota hai taa ke agar primary AZ down ho jaye to secondary automatically promote ho jaye.
+________________________________________
+3️. Multi-Region Setup
+Definition:
+Application ko multiple AWS regions me replicate karna taa ke ek poora region down ho jaye to traffic automatically doosre region pe shift ho jaye.
+________________________________________
+Real-Life Example:
+•	Netflix, Amazon jaisi companies apne apps ko multi-region me deploy karti hain taa ke agar US-east-1 down ho jaye to Europe/Asia users still access kar saken.
+________________________________________
+🔑 Summary (Concepts)
+•	Multi-AZ: Local HA solution, region ke andar multiple datacenters use karta hai.
+•	Multi-Region: Global HA solution, complete regional outage ke against protection.
+•	HA key: Load Balancer + Auto Scaling + Backups + Failover mechanism.
+________________________________________
+ Practical Work
+Practical Work: Setup EC2 Multi-AZ deployment with public & private instances, Bastion host, and Apache installation
+Why we using Bastion & Private Instances
+Summary: Bastion & Private Instances Use
+1️. Bastion Instance (Public EC2)
+•	Ye ek jump host hai jo public internet se accessible hai.
+•	Purpose: Security ke liye direct public access private instances ko allow nahi hai.
+•	Hum Bastion se hi private instances me SSH karte hain, isse private network secure rahta hai.
+2️. Private Instances (No Public IP)
+•	Ye instances direct internet se accessible nahi hain.
+•	Purpose: Sensitive applications/data ko secure rakhna (production-ready approach).
+•	Internet access ke liye NAT Gateway use hota hai (updates, Apache install, etc.).
+3️. Kyu Public IP wali instances nahi?
+•	Agar private instances me public IP hoti → direct internet se access possible → security risk.
+•	Production environments me best practice:
+o	Bastion + Private Instances + NAT Gateway
+o	Traffic only via ALB (HTTP) aur controlled SSH via Bastion.
+________________________________________
+🎯 Goal
+1.	Create Custom VPC
+2.	Create 2 Public Subnets + 2 Private Subnets (Multi-AZ)
+3.	Setup Internet Gateway (IGW)
+4.	Setup Route Tables (Public + Private)
+5.	Launch Public EC2 (Bastion) and Private EC2
+6.	Configure Bastion access to private EC2
+7.	Install Apache on both EC2 instances
+8.	Setup NAT Gateway for private instance internet access
+9.	Verify High Availability (Multi-AZ)
+________________________________________
+Step 1 — Create Custom VPC
+1.	AWS Console → VPC → Create VPC
+o	Name: ha-prod-vpc
+o	CIDR: 10.0.0.0/16
+o	Tenancy: Default → Create
+________________________________________
+Step 2 — Create Subnets (Multi-AZ)
+Subnet Name       	Type	CIDR	AZ
+Public-Subnet-A	Public	10.0.1.0/24	us-east-1a
+Public-Subnet-B	Public	10.0.2.0/24	us-east-1b
+Private-Subnet-A	Private	10.0.3.0/24	us-east-1a
+Private-Subnet-B	Private	10.0.4.0/24	us-east-1b
+•	Create all subnets in ha-prod-vpc
+________________________________________
+Step 3 — Internet Gateway (IGW)
+1.	VPC → Internet Gateways → Create IGW
+o	Name: ha-igw
+2.	Attach IGW → ha-prod-vpc
+________________________________________
+Step 4 — Route Tables
+Public Route Table:
+1.	Create → Name: public-rt → VPC: ha-prod-vpc
+2.	Edit Routes → Add Route:
+o	Destination: 0.0.0.0/0 → Target: ha-igw
+3.	Subnet Associations → Public-Subnet-A + Public-Subnet-B
+Private Route Table:
+1.	Create → Name: private-rt → VPC: ha-prod-vpc
+2.	No internet route yet
+3.	Subnet Associations → Private-Subnet-A + Private-Subnet-B
+________________________________________
+Step 5 — NAT Gateway (For Private EC2 Internet)
+1.	Elastic IP → Allocate new → Name: nat-eip
+2.	VPC → NAT Gateways → Create NAT Gateway:
+o	Subnet: Public-Subnet-A
+o	Elastic IP: nat-eip
+Note : ye neechay 3rd step es liye add kr rahy hn yaha q hm ne apache server internet se install krna hai hmary private instance pr tu internet access zarori hai.
+3.	Private Route Table → Edit Routes → Add Route:
+o	Destination: 0.0.0.0/0 → Target: NAT Gateway
+✅ Ab private EC2 internet access possible
+________________________________________
+Step 6 — Security Groups
+1️. Bastion-SG (Public EC2)
+•	Inbound:
+o	SSH (22) → Source: My IP
+o	HTTP (80) optional → yaha py wo group use krna jo aggay Load balancer mn mynewsg use hoga jo badd mn add kr skty hn jb load balancer test krain gay.
+•	Outbound: All traffic → 0.0.0.0/0
+2️. Private-EC2-SG (Private EC2)
+•	Inbound:
+o	SSH (22) → Source: Bastion-SG
+•	Outbound: All traffic → 0.0.0.0/0
+________________________________________
+Step 7 — Launch Public EC2 (Bastion Host)
+1.	EC2 → Launch Instance
+2.	AMI: Ubuntu 24.04 LTS
+3.	Instance Type: t2.micro
+4.	Network: ha-prod-vpc
+5.	Subnet: Public-Subnet-A
+6.	Auto-assign Public IP: Enable
+7.	Security Group: Bastion-SG
+8.	Key Pair: bastion-key.pem → Download
+________________________________________
+Step 8 (i) — Launch Private EC2 (private instance 1)
+1.	EC2 → Launch Instance
+2.	AMI: Ubuntu 24.04 LTS
+3.	Instance Type: t2.micro
+4.	Network: ha-prod-vpc
+5.	Subnet: Private-Subnet-A
+6.	Auto-assign Public IP: Disable
+7.	Security Group: Private-EC2-SG
+8.	Key Pair: Same as Bastion (bastion-key.pem)
+________________________________________
+Step 8(ii) — Launch Private EC2(Private instance 2)
+1.	EC2 → Launch Instance
+2.	AMI: Ubuntu 24.04 LTS
+3.	Instance Type: t2.micro
+4.	Network: ha-prod-vpc
+5.	Subnet: Private-Subnet-B
+6.	Auto-assign Public IP: Disable
+7.	Security Group: Private-EC2-SG
+8.	Key Pair: Same as Bastion (bastion-key.pem)
+________________________________________
+
+Note : Before login to private ec2 instance1 and private ec2 instance 2 we must load bastion.pem key from our pc download folder to our bastion instance by using Winscp software as 
+🔑 Process: Upload bastion.pem to Bastion Instance via WinSCP
+1. WinSCP Install karo
+•	Agar WinSCP install nahi hai, download aur install karo: https://winscp.net
+2. WinSCP kholna aur session set karna
+1.	WinSCP open karo.
+2.	Session Panel me:
+o	File protocol: SFTP select karo
+o	Host name: Bastion server ka Public IP likho (jo AWS console me dikh raha hai)
+o	Port number: 22
+o	User name: ec2-user (agar Amazon Linux/RedHat hai) ya ubuntu (agar Ubuntu server hai).
+3. WinSCP me ppk key use karna
+1.	WinSCP session panel me, Advanced… button click karo.
+2.	Left side se SSH → Authentication select karo.
+3.	Private key file me apna bastion.ppk select karo.
+4.	OK click karo aur session save karlo.
+4. Connect aur Upload
+1.	Login button press karo.
+2.	Agar sab set hai to tum Bastion instance se connect ho jaoge.
+3.	Left panel (Local PC) → jao Downloads folder me aur apni bastion.pem file select karo.
+4.	Right panel (Server) → decide karo kaha upload karni hai (e.g. /home/ec2-user/).
+5.	Drag and drop karke file upload kar dain
+________________________________________
+Step 9(i) — SSH Setup (Bastion → Private instance 1)
+SSH into Bastion:
+ssh -i ~/Downloads/bastion.pem ubuntu@<Bastion-Public-IP>
+
+ls
+
+bastion.pem
+
+Install Apache
+Public EC2 (Bastion):
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Public EC2 (AZ-A)" | sudo tee /var/www/html/index.html
+systemctl status apache2
+curl http://localhost
+
+To verify run as 
+
+Curl localhost
+
+ output as
+
+Hello from Public EC2 (AZ-A)
+Run Command as 
+chmod 400 /home/ubuntu/bastion.pem
+SSH into Private from Bastion:
+ssh -i /home/ubuntu/bastion.pem ubuntu@private instance 1 private key
+✅ Ab tum Private EC2 me ho
+Install Apache
+Private EC2 (via Bastion):
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Private EC2 (AZ-A)" | sudo tee /var/www/html/index.html
+systemctl status apache2
+curl http://localhost
+
+To verify run as 
+
+curl localhost
+
+ output as
+
+Hello from Private EC2 (AZ-A)
+
+✅ Private EC2 internet access NAT Gateway se kaam karega
+________________________________________
+Step 9(ii) — SSH Setup (Bastion → Private instance 2)
+SSH into Bastion:
+ssh -i ~/Downloads/bastion.pem ubuntu@<Bastion-Public-IP>
+
+ls
+
+bastion.pem
+
+Install Apache
+Public EC2 (Bastion):
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Public EC2 (AZ-A)" | sudo tee /var/www/html/index.html
+systemctl status apache2
+curl http://localhost
+
+To verify run as 
+
+Curl localhost
+
+ output as
+
+Hello from Public EC2 (AZ-A)
+Run Command as 
+chmod 400 /home/ubuntu/bastion.pem
+SSH into Private from Bastion:
+ssh -i /home/ubuntu/bastion.pem ubuntu@private instance 2 private key
+✅ Ab tum Private EC2 me ho
+Install Apache
+Private EC2 (via Bastion):
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Private EC2 (AZ-B)" | sudo tee /var/www/html/index.html
+systemctl status apache2
+curl http://localhost
+
+To verify run as 
+
+curl localhost
+
+ output as
+
+Hello from Private EC2 (AZ-B)
+
+✅ Private EC2 internet access NAT Gateway se kaam karega
+________________________________________
+🔑 Final Notes
+•	VPC: ha-prod-vpc (10.0.0.0/16)
+•	Subnets: 2 Public + 2 Private (Multi-AZ)
+•	IGW + NAT: Public subnet IGW, Private subnet NAT Gateway
+•	Security Groups: Bastion + Private EC2
+•	EC2: Public Bastion + Private EC2
+•	Apache: Installed & accessible
+•	High Availability: Multi-AZ Private EC2 deployment
+________________________________________
+✅ Ye setup production-ready, Multi-AZ, internet-accessible Private EC2 ke liye fully complete hai.
+✅ Private instance bhi Apache install aur update kar sakta hai NAT Gateway ke through.
+
+Step 10 — Auto Scaling Setup
+10(i) — Create Launch Template
+•	Name: Launch1a.s
+•	AMI: Ubuntu 24.04 LTS
+•	Instance Type: t3.micro
+•	Security Group: Private-EC2-SG
+•	Key Pair: bastion.pem
+•	Subnet: Private-Subnet-B (primary), enable multiple AZs later
+•	User data (for Apache auto-install):
+#!/bin/bash
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Auto-Scaled Private EC2" | sudo tee /var/www/html/index.html
+systemctl start apache2
+systemctl enable apache2
+10(ii) — Create Auto Scaling Group
+•	Name: private-ec2-asg
+•	Launch Template: Launch1a.s
+•	VPC: ha-prod-vpc
+•	Subnets: Private-Subnet-A + Private-Subnet-B
+•	Desired Capacity: 2
+•	Minimum: 1
+•	Maximum: 4
+•	Attach to Target Group (create private-ec2-tg)
+________________________________________
+
+Note: ek secuirity group mynewsg k naaam se bna lo jis mn Allow HTTP 80 from Anywhere (0.0.0.0/0) krlo ye load balancer mn use karna hai.
+Step 11 — Application Load Balancer (ALB)
+11(i) — Create ALB
+•	Type: Application
+•	Scheme: Internet-facing
+•	Listeners: HTTP 80
+•	Availability Zones: Public-Subnet-A + Public-Subnet-B
+•	Security Group: select existing group mynewsg. 
+11(ii) — Create Target Group
+•	Name: private-ec2-tg
+•	Target type: Instances
+•	Protocol: HTTP 80
+•	Register targets: Add both private EC2 instances
+Health Check:
+•	Protocol: HTTP
+•	Path: /
+•	Success codes: 200
+________________________________________
+✅ Step 12 — Verify Multi-AZ HA & ALB
+1.	Bastion → Private EC2:
+curl localhost
+# AZ-A → Hello from Private EC2 (AZ-A)
+# AZ-B → Hello from Private EC2 (AZ-B)
+2.	Browser → ALB DNS:
+my-app-alb-xxxxxxxx.us-east-1.elb.amazonaws.com
+•	Should return round-robin responses:
+o	"Hello from Private EC2 (AZ-A)"
+o	"Hello from Private EC2 (AZ-B)"
+3.	Auto Scaling Test:
+•	Terminate one private EC2 → New instance automatically launches → ALB still serves traffic
+________________________________________
+🔑 Key Takeaways
+•	Multi-AZ: AZ-A + AZ-B for HA
+•	ALB: Distributes traffic evenly
+•	Auto Scaling: Handles load & instance failures automatically
+•	Private EC2: Internet access via NAT Gateway
+•	Bastion: Secure SSH access to private instances
+•	Apache: Web server running and testable
+________________________________________
+Assignment: 
+Backup & Restore Plan (AWS Multi-AZ Setup)
+🎯 Objective (Goal)
+1.	Backup create karna:
+o	EC2 AMI (instance-level backup)
+o	EBS Snapshots (disk-level backup)
+o	Application files (S3 bucket me copy)
+2.	Restore karna agar instance crash ya delete ho jaye:
+o	AMI se naya instance
+o	EBS snapshot se data recover
+o	S3 se application restore
+3.	High Availability (HA) ensure karna:
+o	Multi-AZ architecture
+o	Load Balancer (ALB)
+o	Auto Scaling group
+________________________________________
+🔹 Step 1 — Create AMI Backup (Instance Image)
+Purpose: AMI se aapka pura instance (OS, packages, configs, Apache installation) backup ho jata hai.
+Agar instance crash ho jaye, naya instance exact same state me ban sakta hai.
+Steps:
+1.	AWS Console → EC2 → Instances
+2.	Select Private EC2 AZ-A
+3.	Actions → Image → Create Image
+4.	Fill details:
+o	Name → Private-EC2-AZ-A-Backup
+o	Description → Backup for Multi-AZ HA Assignment
+o	No reboot → (optional) check kar sakte ho agar downtime nahi chahiye
+5.	Click Create Image
+6.	Yehi steps repeat karo:
+o	Private EC2 AZ-B
+o	Bastion Public EC2
+7.	✅ Verify: EC2 → AMIs → backup images ready
+________________________________________
+🔹 Step 2 — Create EBS Snapshot (Volume Backup)
+Purpose: Disk-level data safe rakhna. Agar data corrupt ho jaye, snapshot se naya volume bana kar attach kar sakte ho.
+Steps:
+1.	EC2 → Volumes
+2.	Select Private EC2 AZ-A ka root volume
+3.	Actions → Create Snapshot
+4.	Name → Private-EC2-AZ-A-Snapshot
+5.	Repeat for:
+o	Private EC2 AZ-B
+o	Bastion Host
+6.	✅ Verify: EC2 → Snapshots → snapshot available
+________________________________________
+🔹 Step 3 — Application Data Backup to S3
+Purpose: Website content aur application files ko safe rakhna.
+S3 ek durable storage hai, jaha se files restore ho sakti hain.
+Parts:
+Part 1.
+S3 Bucket create karo
+1.	AWS Console → S3 → Create bucket
+o	Bucket name: ha-assignment-backup
+o	Region: us-east-1 (ya jo tumhara VPC region ho)
+o	Block Public Access: ON (default)
+o	(Optional) Bucket Versioning: Enable (backup ke liye achha hota hai)
+o	Create.
+
+Note: 
+Ye command run karne ke liye:
+aws s3 sync /var/www/html s3://ha-assignment-backup/ --region us-east-1
+humein private EC2 par AWS CLI install karni hogi.
+Aur normally AWS CLI ke liye aws configure karna padta hai jisme IAM user aur keys chahiye hoti hain.
+Lekin yahan hum ye method use nahi kar rahe, balki IAM Role use karenge jo best practice hai.
+kyunki isme security risks aur rotation issues hote hain.
+AWS ki best practice yehi hai ke tum IAM Roles use karo instead of access keys.
+
+Part 2.
+IAM Role for EC2(Recommended)
+Kyu? Secure (no keys), rotate-free, auto-works with CLI.
+Part 2A) Custom Policy banao (least privilege)
+IAM → Policies → Create policy → JSON me yeh daalo (region/bucket name match rakho):
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::ha-assignment-backup"
+    },
+    {
+      "Sid": "ObjectRW",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::ha-assignment-backup/*"
+    }
+  ]
+}
+•	Name: S3BackupWritePolicy
+(Quick & dirty alternative: temporarily attach AmazonS3FullAccess; baad mein upar wali least-privilege pe aa jao.)
+Part 2B) Role banao aur policy attach karo
+•	IAM → Roles → Create role
+o	Trusted entity: AWS service
+o	Use case: EC2
+o	Next → Policies me S3BackupWritePolicy select
+o	Role name: EC2-S3-Backup-Role
+o	Create role.
+Part 2C) Role ko Private EC2 par attach karo
+•	EC2 → Instances → apni private EC2(s) select
+•	Actions → Security → Modify IAM role
+•	IAM role: EC2-S3-Backup-Role choose → Update IAM role
+(ASG use kar rahe ho to Launch Template me IAM instance profile = is role ko set karo, phir “Instance refresh” run karo.)
+
+Part 3. 
+S3 VPC Endpoint(Optional but recommended)
+NAT ke baghair S3 access (aur cheap).
+•	VPC → Endpoints → Create endpoint
+o	Service category: AWS services
+o	Service: com.amazonaws.us-east-1.s3
+o	Type: Gateway
+o	VPC: ha-prod-vpc
+o	Route tables: private-rt select karo
+o	Create endpoint
+(Agar ye kar liya to NAT ke bina bhi S3 chalega.)
+(Optional) Bucket policy ko VPC Endpoint par restrict karna
+S3 → Bucket → Permissions → Bucket policy:
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OnlyFromMyVPCE",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::ha-assignment-backup",
+        "arn:aws:s3:::ha-assignment-backup/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceVpce": "vpce-xxxxxxxxxxxxxxxxx"
+        }
+      }
+    }
+  ]
+}
+vpce-... apne endpoint ID se replace karo.
+Agar sirf role ko allow karna chaho to Principal me role ARN ya condition aws:PrincipalArn use kar sakte ho.
+Part 4. 
+AWS CLI v2 install (Ubuntu 24.04)
+On the private EC2 (via Bastion)(same method se login kro jo practical waork mn kia tha hm ne)
+
+sudo apt update -y
+sudo apt install -y unzip curl
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+aws --version
+
+Part 5. 
+Verify credentials (Role method)
+# Ye command role ko verify karta hai
+aws sts get-caller-identity
+
+# Optional: region set karlo (agar default nahi hai)
+export AWS_REGION=us-east-1
+•	Agar Unable to locate credentials aaye → role attach nahi hua ya IMDS blocked.
+Fix: Step B3 dobara check karo.
+
+Part 6.
+First Sync to S3
+# Dry run (sirf dikhata hai kya upload hoga)
+aws s3 sync /var/www/html s3://ha-assignment-backup/ --dryrun --region us-east-1
+
+# Actual backup
+aws s3 sync /var/www/html s3://ha-assignment-backup/ --region us-east-1
+
+# Verify
+aws s3 ls s3://ha-assignment-backup/ --region us-east-1
+________________________________________
+🔹 Step 4 — Automated Backup (Lifecycle Manager) Optional-But recommended
+Purpose:
+•	Har roz ya har week automatically EBS volume ka snapshot create ho jaye.
+•	Manual backup lene ki zarurat nahi, aur data safe rahe.
+•	Agar instance crash ho ya delete ho → latest snapshot se restore kar sakte ho.
+
+Conceptual Example (Real-Life Analogy):
+•	Socho tum roz apni files ka copy USB pe save karte ho.
+•	Ab imagine karo agar tum ek automatic timer laga do jo har din ye kaam khud kar de.
+•	Isi tarah AWS Lifecycle Manager automatically EBS snapshots create karta hai.
+Steps (Easy Version):
+1.	AWS Console → EC2 → Lifecycle Manager
+o	Ye tool AWS ka hai jo automatically snapshots manage karta hai.
+2.	Click Create Lifecycle Policy
+o	Policy = rule jisme batate ho kaunse volumes ka backup kab aur kitne din ke liye rakhna hai.
+3.	Policy Type:
+o	Select EBS Snapshot → matlab snapshot create karna.
+4.	Target Volumes:
+o	Choose jo EC2 volumes backup me chahiye
+	Private EC2 AZ-A
+	Private EC2 AZ-B
+	Bastion EC2
+5.	Schedule (Kab Snapshot Create Hoga):
+o	Daily → har din backup ready
+o	Weekly → har week backup ready
+o	Time choose kar sakte ho, jaise raat 2:00 AM
+6.	Retention (Kitne din backup rakha jaye):
+o	Example: 7 snapshots → purane snapshot automatically delete ho jayenge aur sirf 7 latest snapshots rahenge
+7.	Click Create Policy ✅
+Result:
+•	Ab se har day/weekly automatic snapshots banenge
+•	Tumhe manually snapshot lene ki zarurat nahi
+Important Points / Tips
+•	Ye production me best practice hai, taake data loss risk zero ho.
+•	Agar volume me koi new changes hue → automatic snapshot me wo update bhi save ho jaye.
+•	Retention set karna important hai, taake unnecessary storage charges na lage.
+________________________________________
+🔹 Step 5 — Restore Plan 
+Purpose:
+Yahan assignment me hum kar rahe hain:
+1.	Data aur application restore karna agar EC2 instance crash ho jaye, ya accidentally data delete ho jaye.
+2.	Backup ke through production-ready restore test karna.
+3.	Ye ensure karna ke HA setup me downtime ke baad bhi website/application quickly recover ho sake.
+Humare pass 3 restore options hain:
+•	Option 1: Full EC2 restore from AMI → Agar poora server crash ho gaya
+•	Option 2: Restore EBS snapshot → Agar sirf storage/volume ka data chahiye
+•	Option 3: Restore from S3 → Agar sirf application files (Apache website) restore karni ho
+Assignment me best practice:
+•	Primary method: Option 3 (S3 restore)
+•	Optional: Option 1 & 2 for disaster recovery scenarios
+Practical Steps — Complete
+Option 1: 
+Restore EC2 from AMI
+1.	Go to EC2 → AMIs in AWS Console
+2.	Select the backup AMI (jo humne Step 2 me create kiya tha)
+3.	Click Launch Instance
+4.	Select:
+o	VPC: ha-prod-vpc
+o	Subnet: Private-Subnet-A ya B
+o	Security Group: Private-EC2-SG
+5.	Launch the instance
+6.	Connect via Bastion host if private EC2
+7.	Verify Apache & website:
+curl localhost
+# Should show "Hello from Private EC2 (AZ-A/B)" depending on AZ
+✅ Result: Full EC2 restore with Apache + website data automatically ready
+
+Option 2: 
+Restore EBS Snapshot
+1.	Go to Snapshots → Select your snapshot
+2.	Click Create Volume
+o	Availability Zone: EC2 instance ka AZ
+3.	Attach volume to instance
+o	Target Device: /dev/xvdf (example)
+4.	SSH into EC2 (via Bastion if private)
+Check volume availability run command as 
+lsblk
+5.	Mount volume if needed:
+sudo mkdir /mnt/restore
+sudo mount /dev/xvdf /mnt/restore
+6.	Copy files back to Apache root:
+sudo cp -r /mnt/restore/* /var/www/html/
+7.	Verify website:
+curl localhost
+✅ Result: Volume-specific data restore ho gaya
+
+Option 3: 
+Restore Application Data from S3
+1.	Ensure AWS CLI installed & IAM user credentials configured
+2.	Run command to sync files:
+aws s3 sync s3://ha-assignment-backup/ /var/www/html/
+3.	Verify website:
+curl localhost
+# Should display "Hello from Private EC2 (AZ-A/B)"
+✅ Result: Application files restore ho gaye without touching EC2/Volume
+🔹 Summary
+•	Assignment purpose: EC2 & website ke data ka backup/restore plan implement karna
+•	Primary restore: S3 sync → fast & simple
+•	Optional restore: AMI restore (full instance) + EBS snapshot (volume data)
+•	Testing: Ensure Apache website works after restore
+________________________________________
+🔹 Step 6 — Test Backup & Restore (Practical)
+1️. Terminate Private EC2 (AZ-A)
+•	AWS Console → EC2 → Instances
+•	Select the Private EC2 (AZ-A) instance → Actions → Instance State → Terminate
+•	Confirm termination
+Reason: Hum check karna chahte hain ke backup se naya instance launch karke data restore ho raha hai ya nahi.
+2️.  Launch New Instance using AMI
+•	EC2 → AMIs → Select your Backup AMI
+•	Click Launch Instance
+•	Choose:
+o	VPC: ha-prod-vpc
+o	Subnet: AZ-A (same as terminated instance)
+o	Security Group: Private-EC2-SG
+•	Launch instance
+AMI se instance launch karne ka fayda: Server & data pre-configured hota hai. Apache automatically configured rahega.
+3️. Launch New Instance using EBS Snapshot (Optional Alternative)
+1.	EC2 → Snapshots → Select snapshot
+2.	Actions → Create Volume → Select AZ: AZ-A
+3.	Attach Volume to any new instance (Temporary instance)
+4.	SSH into new instance
+5.	Mount the volume:
+sudo mkdir -p /mnt/restore
+sudo mount /dev/nvme1n1p1 /mnt/restore
+6.	Copy files back to Apache root:
+sudo cp -r /mnt/restore/* /var/www/html/
+4️. Verify Instance
+•	SSH into new instance → check website:
+curl localhost
+•	Output should be:
+Hello from Private EC2 (AZ-A)
+
+5️. Verify ALB & Auto Scaling
+•	Browser → ALB DNS
+•	Refresh multiple times → Output should round-robin between AZ-A & AZ-B:
+Hello from Private EC2 (AZ-A)
+Hello from Private EC2 (AZ-B)
+✅ Result:
+•	Backup restore properly ho gaya
+•	Auto Scaling & ALB traffic distribution verified

@@ -1,0 +1,248 @@
+## 🧪 **Practical Work — Cross Account S3 Access via Role**
+
+**🎯 Maqsad:**
+Account B ka IAM user/role securely access kare Account A ki S3 bucket ko `assume-role` ke zariye (temporary credentials use kar ke).
+
+---
+
+### 🗺 **Setup Overview**
+
+**Account A (Resource Owner):**
+
+* S3 bucket banana
+* IAM Role create karna (trust = Account B)
+* AmazonS3ReadOnlyAccess attach karna
+* Role ka ARN copy karke Account B ko dena
+
+**Account B (Consumer):**
+
+* IAM user banana jisko `sts:AssumeRole` allow ho
+* AWS CLI configure karna
+* Role assume karna aur temp credentials use karna
+
+---
+
+### 🧭 **Pre-Flight Checklist**
+
+* 2 AWS Accounts (A & B)
+* Same region (e.g. `us-east-1`)
+* AWS CLI install hona chahiye
+
+---
+
+### 🔹 **Step 1 — Account A me S3 Bucket Create**
+
+```bash
+# Login Account A
+# S3 → Create bucket
+Bucket name: account-a-cross-bucket-shan457043
+Region: us-east-1
+Block all public access: ON
+```
+
+(Optional) ek `readme.txt` upload kar lo bucket me test ke liye.
+
+---
+
+### 🔹 **Step 2 — Account A me Cross Account Role Banao**
+
+```bash
+# IAM → Roles → Create role
+Trusted entity: Another AWS account
+Account ID: <Account-B-ID>
+Permissions: AmazonS3ReadOnlyAccess
+Role name: CrossAccountS3ReadRole
+```
+
+Role ka ARN copy karo (example):
+`arn:aws:iam::111122223333:role/CrossAccountS3ReadRole`
+
+**Trust Policy JSON:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::<AccountB-ID>:root" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+---
+
+### 🔹 **Step 3 — Account B me Policy aur IAM User Create**
+
+**Custom Policy (AllowAssumeCrossAccountS3Role):**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole"
+    }
+  ]
+}
+```
+
+**User Create Command:**
+
+* IAM → Users → Add User → `cross-account-tester`
+* Access type: Programmatic access
+* Attach above policy → Create user
+* Keys download kar lo (Access Key & Secret Key)
+
+---
+
+### 🔹 **Step 4 — Account B me AWS CLI Configure**
+
+```bash
+ssh -i "my-key.pem" ubuntu@<EC2_PUBLIC_IP>
+
+sudo apt update -y
+sudo apt install unzip -y
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws configure
+```
+
+Enter:
+
+```
+AWS Access Key ID: <Account-B Key>
+AWS Secret Access Key: <Account-B Secret>
+Default region: us-east-1
+Output format: json
+```
+
+---
+
+### 🔹 **Step 5 — Role Assume Karna (Temporary Credentials Lena)**
+
+```bash
+aws sts assume-role \
+  --role-arn arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole \
+  --role-session-name CrossAcctS3Test
+```
+
+Output me AccessKeyId, SecretAccessKey, aur SessionToken milega.
+
+---
+
+### 🔹 **Step 6 — Temp Credentials Profile Me Set Karna**
+
+```bash
+aws configure --profile cross-account
+# Enter temporary keys
+aws configure set aws_session_token "<SessionToken>" --profile cross-account
+```
+
+---
+
+### 🔹 **Step 7 — Test: Account A Bucket Read**
+
+```bash
+aws s3 cp s3://account-a-cross-bucket-shan457043/readme.txt ./ \
+  --profile cross-account --region us-east-1
+```
+
+✅ Agar file copy ho gayi — SUCCESS!
+
+---
+
+### 🧹 **Clean Up**
+
+```bash
+# Account A
+Delete S3 bucket and CrossAccountS3ReadRole
+
+# Account B
+Delete IAM user 'cross-account-tester'
+
+# Local
+Remove ~/.aws/credentials profile
+```
+
+---
+
+## 📘 **Assignment**
+
+**🎯 Objective:**
+Account B ke IAM users aur roles ko **secure, least-privilege, read-only access** dena Account A ke S3 bucket par `assume-role` ke through.
+
+**🧩 Custom Policies:**
+
+**1️⃣ Account B User Policy — Assume Role**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "<Optional-External-ID>"
+        }
+      }
+    }
+  ]
+}
+```
+
+**2️⃣ Account A Role Policy — Read-Only S3 Access**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::account-a-cross-bucket-<unique>",
+        "arn:aws:s3:::account-a-cross-bucket-<unique>/*"
+      ]
+    }
+  ]
+}
+```
+
+**3️⃣ Optional Bucket Policy — Restrict Role Access Only**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowReadOnlyFromCrossAccountRole",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole"
+      },
+      "Action": ["s3:ListBucket", "s3:GetObject"],
+      "Resource": [
+        "arn:aws:s3:::account-a-cross-bucket-<unique>",
+        "arn:aws:s3:::account-a-cross-bucket-<unique>/*"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+✅ **Final Result:**
+Cross-account secure setup ready — temporary credentials ke zariye S3 access, bina permanent keys ke.
+Security, automation, aur least-privilege principle — sab maintain hota hai 🔒
+
+---

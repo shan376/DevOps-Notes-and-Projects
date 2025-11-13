@@ -1,0 +1,336 @@
+📘 AWS IAM Advanced Concepts — Roles, Policies & Federation
+
+1️. IAM Roles
+
+Definition:
+
+AWS IAM role ek temporary identity hai jo specific permissions ke saath assign hoti hai. Ye user ya service ko short-term access deti hai bina permanent credentials share kiye.
+Zarurat:
+•	Jab aap chahte ho ke EC2 instances, Lambda functions, ya dusre AWS accounts ke users temporary access le sakein.
+•	Security improve hoti hai kyunki long-term keys share nahi hoti.
+Real-Life Example:
+•	Tumhara startup hai, aur tumhare paas ek EC2 server hai jo S3 bucket me data read karna chahta hai.
+•	EC2 instance ko direct AWS keys dena risky hai. Tum Role attach kar dete ho EC2 ko aur automatically wo bucket access kar sakta hai.
+•	Agar keys leak ho bhi jaye, koi problem nahi, kyunki ye temporary credentials hai.
+Key Points:
+•	Roles ko assume kiya jata hai.
+•	Temporary credentials hamesha expire ho jate hain.
+•	Least privilege principle ke liye best practice.
+
+---
+
+2️. IAM Policies
+Definition:
+Policy ek JSON document hai jo define karta hai ke user, role, ya group ko AWS resources pe kya actions perform karne ki permission hai.
+Zarorat:
+•	Security enforce karne ke liye.
+•	Access control simple aur manageable banata hai.
+•	Granular control: kaun GET, PUT, LIST ya DELETE kar sakta hai.
+Types:
+
+1. Managed Policies: AWS ne pre-defined banayi hui, easy attach karna.
+2. Inline Policies: Custom policies, specific user ya role ke liye.
+   Real-Life Example:
+   •	Tumhare paas S3 bucket hai jisme sensitive data hai.
+   •	Policy define karte ho: Sirf Finance team read kar sakti hai, Dev team sirf upload kar sakti hai.
+   •	Agar koi aur try kare to AccessDenied aayega.
+   Key Points:
+   •	JSON format me likhi jati hai.
+   •	Action, Resource, Effect (Allow/Deny) specify karna hota hai.
+   •	Least privilege follow karna security ke liye zaruri.
+
+---
+
+3️. Federation
+Definition:
+Federation matlab external identities (jaise corporate Active Directory ya Google workspace users) ko AWS resources access karna allow karna without creating IAM users.
+Zarurat:
+•	Agar tumhare organization me already users exist karte hain (AD, SSO), unko AWS credentials bina banaye access dena.
+•	Centralized identity management.
+Real-Life Example:
+•	Tumhari company ke employees Google Workspace ya Microsoft AD use karte hain.
+•	Har employee ke liye AWS IAM user create karna boring aur error-prone hai.
+•	Federation setup karte ho: Employees apne corporate login se AWS console ya CLI access kar sakte hain.
+•	Security improve hoti hai, keys create nahi karne padti.
+Key Points:
+•	Temporary access hota hai.
+•	SAML 2.0 ya OIDC standard use hota hai.
+•	Corporate identity ko AWS me extend karna easy.
+
+---
+
+🔑Summary
+•	Roles: Temporary identity for EC2/Lambda/Users across accounts.
+•	Policies: Define karte hain kaun kya kar sakta hai (granular control).
+•	Federation: External users ko AWS access dena without IAM users.
+
+---
+
+Practical Work
+Cross Account S3 Access via Role
+Goal (Maqsad): Account B ka IAM user/role, Account A ki S3 bucket ko securely access kare — assume role ke through (temporary credentials).
+
+---
+
+🧭 High Level Map — Kis Account me kya hoga?
+•	Account A (Resource Owner)
+o	S3 bucket banani
+o	IAM Role banana (trust = Account B)
+o	(Optional) Bucket policy fine tune karni
+o	Role ka ARN copy karke Account B ko dena
+•	Account B (Consumer)
+o	IAM user (ya role) banana jisko sts:AssumeRole allow ho
+o	AWS CLI configure karna (Account B user keys se)
+o	assume-role chalana → temporary credentials
+o	Temp creds se S3 bucket list/get test karna
+
+---
+
+✅ Pre Flight Checklist
+•	2 AWS accounts (A & B) — Free Tier ok
+•	Region decide: example us east 1 (Consistency bohat important!)
+
+---
+
+🆔 Account IDs & ARNs kahan se milenge?
+Console se:
+•	Console ke top right → apna account name/email → Account ID (12 digits)
+CLI se (optional):
+aws sts get-caller-identity
+
+# Output me "Account": "123456789012"
+
+ARN format reminders:
+•	Role ARN: arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole
+•	Account root principal: arn:aws:iam::<AccountB-ID>:root
+Note: IDs/ARNs copy karte waqt spaces, extra characters na ayen.
+
+---
+
+🔹 Step 1 — Account A me S3 Bucket create karo
+
+1. Login → Account A
+2. S3 → Create bucket
+3. Bucket name: account-a-cross-bucket-shan457043(global unique)
+4. Region: us-east-1 (ya jo aap ne decide kiya)
+5. Block all public access = ON (recommended)
+6. Create bucket
+   (Optional) Test object upload: Console se bucket me readme.txt upload kar do taa ke list karne par kuch nazar aaye.
+
+---
+
+🔹 Step 2 — Account A me Cross Account Role banao
+
+1. IAM → Roles → Create role
+2. Trusted entity type: Another AWS account
+3. Account ID: Account B ka 12 digit ID
+4. (Optional) External ID enable — agar third party scenario imitate karna ho (niche detailed section diya hai)
+5. Permissions: AmazonS3ReadOnlyAccess attach
+6. Role name: CrossAccountS3ReadRole
+7. Create role → ho gaya.
+8. Role ka ARN copy karo (example): arn:aws:iam::111122223333:role/CrossAccountS3ReadRole
+   🔐 Trust Relationship (auto + verify)
+   Role → Trust relationships tab me JSON roughly aisa hona chahiye:
+   {
+   "Version": "2012-10-17",
+   "Statement": [
+   {
+   "Effect": "Allow",
+   "Principal": { "AWS": "arn:aws:iam::<AccountB-ID>:root" },
+   "Action": "sts:AssumeRole"
+   }
+   ]
+   }
+   Replace <AccountB-ID> with actual 12 digit account B ID.
+   Why root principal? Iska matlab Account B ke users/roles is role ko assume kar sakte hain (jab unke paas sts:AssumeRole allow ho).
+
+---
+
+Step 3 — Account B me Policy banani + IAM User create karna (CLI use ke liye)
+
+1. Custom Policy Banani
+   •	AWS Console → IAM → Policies → Create policy
+   •	JSON tab select karo aur yeh paste karo:
+   {
+   "Version": "2012-10-17",
+   "Statement": [
+   {
+   "Effect": "Allow",
+   "Action": "sts:AssumeRole",
+   "Resource": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole"
+   }
+   ]
+   }
+   •	<AccountA-ID> ko Account A ka actual 12-digit ID se replace karo.
+   •	Next: Tags → Next: Review
+   •	Policy name: AllowAssumeCrossAccountS3Role
+   •	Create policy.
+
+---
+
+2. IAM User Create Karna
+   •	IAM → Users → Add users
+   •	User name: cross-account-tester
+   •	Access key - Programmatic access select karo
+   •	Next: Permissions → Attach existing policies directly
+   •	Jo policy tumne pehle banayi thi (AllowAssumeCrossAccountS3Role) usko select karo
+   •	Next → Create user
+   •	Access Key ID & Secret Access Key download/store karo (CSV file).
+
+---
+
+🔹 Step 4 — Account B par AWS CLI configure
+Ubuntu Server Create
+
+# AWS CLI ya Console se EC2 instance launch karen
+
+# Example: Ubuntu 24.04 LTS, t2.micro, us-east-1
+
+# Security group: SSH port 22 open
+
+# Key pair: my-key.pem create/download karo
+
+SSH se connect:
+
+# Local terminal se connect karne ke liye
+
+ssh -i "my-key.pem" ubuntu@<EC2_PUBLIC_IP>
+Commands:
+sudo apt update -y
+sudo apt upgrade -y
+curl "[https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip](https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip)" -o "awscliv2.zip"
+sudo apt install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+aws configure
+AWS Access Key ID [None]: <Account-B User Access Key>
+AWS Secret Access Key [None]: <Account-B User Secret Key>
+Default region name [None]: us-east-1
+Default output format [None]: json
+Ye Account B ke long term user keys hain (sirf assume role chalane ke liye). Data access in keys se direct nahi hoga.
+
+---
+
+🔹 Step 5 — Account B se Role Assume karna (temporary creds lena)
+aws sts assume-role \
+--role-arn arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole \
+--role-session-name CrossAcctS3Test
+Output me milega: AccessKeyId, SecretAccessKey, SessionToken, Expiration.
+
+---
+
+🔹 Step 6 — Account B Temporary Credentials ko CLI profile me set karo
+Option A — Named profile (recommended):
+aws configure --profile cross-account
+AWS Access Key ID: <AccessKeyId from assume-role>
+AWS Secret Access Key: <SecretAccessKey from assume-role>
+Default region: us-east-1
+aws configure set aws_session_token "<SessionToken from assume-role>" --profile cross-account
+
+---
+
+🔹 Step 7 — Account B Test: Account A bucket ko list/get karo
+aws s3 cp s3://account-a-cross-bucket-shan457043/readme.txt ./ --profile cross-account --region us-east-1
+✅ Agar listing/GET chal gaya → SUCCESS (Goal achieved)
+
+---
+
+🧹 Clean Up (Free Tier safe raho)
+•	Account A: Test bucket delete karo (pehle objects delete)
+•	Account A: CrossAccountS3ReadRole delete
+•	Account B: cross-account-tester user delete (pehle access key, then user)
+•	Local: ~/.aws/credentials me se test profiles/keys remove
+
+---
+
+🏁 Summary (1 pager)
+•	Account A: Bucket + CrossAccountS3ReadRole (trust = Account B root), perms = AmazonS3ReadOnlyAccess
+•	Account B: User with policy sts:AssumeRole → CLI se assume-role → temp creds
+•	Test: Temp creds se aws s3 ls/cp (read) on Account A bucket → ✅
+•	Security+: Optional bucket policy + External ID = least privilege + strong trust
+
+---
+
+Assignment
+Cross Account S3 Access via Role
+Objective: Account B ke IAM users aur roles ko secure aur least-privilege read-only access dena Account A ke S3 buckets par, temporary credentials ke through assume-role ka use kar ke.
+
+---
+
+Custom IAM Policies
+1️. Account B User Policy — Assume Role
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": "sts:AssumeRole",
+"Resource": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole",
+"Condition": {
+"StringEquals": {
+"sts:ExternalId": "<Optional-External-ID>"
+}
+}
+}
+]
+}
+Explanation:
+•	Ye policy Account B ke IAM user ko allow karti hai ke woh Account A ka CrossAccountS3ReadRole role assume kare.
+•	sts:ExternalId optional hai lekin agar third-party ya strong trust chahiye to use karna zaroori hai.
+•	Ye ensure karta hai ke direct long-term keys se access na ho, sirf temporary creds use hon.
+
+---
+
+2️. Account A Role Policy — Read-Only S3 Access
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Effect": "Allow",
+"Action": ["s3:GetObject", "s3:ListBucket"],
+"Resource": [
+"arn:aws:s3:::account-a-cross-bucket-<unique>",
+"arn:aws:s3:::account-a-cross-bucket-<unique>/*"
+]
+}
+]
+}
+Explanation:
+•	Ye role Account A me create hota hai aur Account B ke users ke liye read-only S3 access allow karta hai.
+•	Sirf GetObject aur ListBucket actions allow hain, write/upload deny hai.
+•	Ye least-privilege principle follow karta hai.
+
+---
+
+3️. Optional Bucket Policy — Restrict Access to Role Only
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Sid": "AllowReadOnlyFromCrossAccountRole",
+"Effect": "Allow",
+"Principal": {
+"AWS": "arn:aws:iam::<AccountA-ID>:role/CrossAccountS3ReadRole"
+},
+"Action": ["s3:ListBucket", "s3:GetObject"],
+"Resource": [
+"arn:aws:s3:::account-a-cross-bucket-<unique>",
+"arn:aws:s3:::account-a-cross-bucket-<unique>/*"
+]
+}
+]
+}
+Explanation:
+•	Ye bucket policy ensure karti hai ke sirf CrossAccountS3ReadRole se hi access possible ho.
+•	Agar kisi ne keys leak bhi ki, direct access nahi ho payega.
+•	Ye extra security layer provide karti hai aur portfolio me professional-level implementation dikhata hai.
+
+---
+
+Summary:
+•	Policy 1: Account B ke IAM user ko role assume karne ki permission.
+•	Policy 2: Account A ka role Account B ke users ko read-only S3 access deta hai.
+•	Policy 3: Optional bucket-level restriction for stronger security.
+
+---

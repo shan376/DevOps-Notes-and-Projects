@@ -1,0 +1,343 @@
+Best Practices for Kubernetes Deployments
+________________________________________
+1. Security
+👉 Kubernetes me har cheez ek resource hoti hai (pods, services, secrets, configmaps). Agar security dhang se na ho to koi bhi banda cluster ke andar ghus ke sensitive data (jaise DB passwords, tokens, certificates) nikal sakta hai.
+Best practice yeh hai ke:
+•	RBAC (Role Based Access Control) use karo → har user ko sirf wahi permission do jo uske kaam ke liye zaroori hai.
+•	Secrets ko ConfigMap ki bajaye Secret object me rakho aur unko encrypt karke manage karo.
+•	Network Policies use karo → taki ek pod dusre pod tak sirf tabhi pohanch paye jab permission di ho.
+💡 Real-life Example:
+Agar tumhari company ka e-commerce app hai aur usme frontend pod directly database se baat karna shuru kar de bina kisi security ke, to hacker frontend hack karke DB ka sara data nikal lega. Isliye tum ek NetworkPolicy banate ho jo sirf backend → database allow karta hai.
+________________________________________
+2. Scaling
+👉 Scaling ka matlab hai workload ke hisaab se apne app ki replicas badhana ya kam karna. Kubernetes isko bohot asaan banata hai.
+Best practice yeh hai ke:
+•	Horizontal Pod Autoscaler (HPA) use karo jo CPU/memory ke hisaab se pods ka size auto adjust kare.
+•	Cluster Autoscaler lagao jo demand ke hisaab se worker nodes ko add/remove kar de.
+💡 Real-life Example:
+Socho tumhari food delivery app hai. Din ke waqt traffic kam hai to sirf 3 pods chal rahe hain. Lekin raat 8 baje jab sab order kar rahe hote hain to traffic 10x badh jata hai. Kubernetes automatically pods ko scale karke 30 kar deta hai taki app slow na ho.
+________________________________________
+3. Monitoring
+👉 Production system bina monitoring ke chalana matlab andheron me gaari chalana. Tumhe pata hi nahi chalega ke cluster load le raha hai ya crash ho raha hai.
+Best practice yeh hai ke:
+•	Prometheus use karo metrics collect karne ke liye (CPU, memory, network traffic).
+•	Grafana dashboards banao taki easily visualize kar sako.
+•	Alerts setup karo (jaise agar CPU usage > 80% ho jaye to email ya Slack message aa jaye).
+💡 Real-life Example:
+Tumhari ride-hailing app (Uber jaise) chal rahi hai. Ek din sudden traffic aata hai aur master node pe load 95% ho jata hai. Agar monitoring nahi hai to tumhe pata hi nahi chalega aur cluster down ho jayega. Monitoring ki wajah se tum timely scale karke system ko bachaa loge.
+________________________________________
+4. Configuration Management
+👉 Production me har app ke alag environment hote hain (Dev, Staging, Prod). Tumhe config files alag alag rakhni padti hain taki galti se production DB staging me connect na ho jaye.
+Best practice:
+•	ConfigMaps aur Secrets ka use karo.
+•	Helm charts ya Kustomize se deployments manage karo taki har environment ke liye alag config ho.
+💡 Real-life Example:
+Socho tumhari banking app hai. Agar accidentally staging environment se Production DB connect ho gaya to tumhare test ke time asli customers ka data delete ho sakta hai. ConfigMap/Secrets isko prevent karte hain.
+________________________________________
+5. High Availability & Fault Tolerance
+👉 Production me downtime allowed nahi hota. Agar ek node crash kare to dusra turant uska workload utha le.
+Best practice:
+•	Multiple replicas rakho.
+•	Pods ko multiple nodes me distribute karo.
+•	Liveness aur Readiness probes use karo taki unhealthy pod automatic restart ho jaye.
+💡 Real-life Example:
+Agar tumhari video streaming app (Netflix jaise) ka ek server down ho jata hai aur tumne replicas + probes set nahi kiye, to users ko buffering aur error milega. Lekin agar properly HA setup hai to user ko koi fark nahi padega.
+________________________________________
+🎯 Conclusion 
+Kubernetes production me chalana sirf "pods run kar do" nahi hai. Tumhe security, scaling, monitoring, config management aur high availability sab set karna parta hai warna app fail ho jayegi.
+Isliye best practices follow karna har production-grade system ke liye must hai.
+________________________________________ 
+Kubernetes Production Setup
+Objective (Practical work + Assingment)
+•	Deploy a production-ready Kubernetes cluster.
+•	Follow best practices: security, scaling, monitoring.
+•	Prepare a practical assignment: scalable app deployment.
+________________________________________
+Security Group ( only one group needed for all 3 nodes)
+Name: k8s-cluster-sgshan
+Description: Security group for Kubernetes cluster setup
+VPC: vpc-08b0f1821a6adf350
+✅ Inbound Rules (8 Rules)
+Rule ID	Type	Protocol	Port Range	Source	Purpose
+sgr-0ba5cd06dcd3e2686	SSH	TCP	22	0.0.0.0/0	Remote login for master/worker setup
+sgr-0e9fc42004ddabaac	Custom TCP	TCP	3000	0.0.0.0/0	Grafana dashboard access
+sgr-01cb68e76a6909da5	Custom TCP	TCP	6443	Same SG (self)	Kubernetes API server communication
+sgr-0f773a639d7ae746c	Custom TCP	TCP	30000–32767	0.0.0.0/0	NodePort services (exposed apps)
+sgr-0f7b2817aecb6378d	All traffic	All	All	Same SG (self)	Cluster internal communication (pods/nodes)
+sgr-026c21a242f85942e	Custom TCP	TCP	2379–2380	Same SG (self)	etcd (K8s key-value store) communication
+sgr-08cebb71fbd71d39f	Custom TCP	TCP	9090	0.0.0.0/0	Prometheus monitoring access
+sgr-0953dd27f3c7e73c8	Custom TCP	TCP	10250–10255	Same SG (self)	Kubelet API + control plane to nodes
+
+✅ Outbound Rules (1 Rule)
+Type	Protocol	Port Range	Destination	Purpose
+All traffic	All	All	0.0.0.0/0	Allow all outgoing traffic
+📖 Notes 
+1.	Create new Security Group in same VPC.
+o	Name: k8s-cluster-sg-<project>
+o	Description: Security group for Kubernetes cluster
+2.	Add Inbound Rules (same as above):
+o	SSH (TCP 22) from 0.0.0.0/0 (⚠️ prefer only your IP for security).
+o	TCP 6443 (API server) from self SG.
+o	TCP 2379–2380 (etcd) from self SG.
+o	TCP 10250–10255 (Kubelet) from self SG.
+o	All traffic from self SG (cluster internal comms).
+o	TCP 30000–32767 (NodePorts) from 0.0.0.0/0.
+o	TCP 3000 (Grafana) from 0.0.0.0/0.
+o	TCP 9090 (Prometheus) from 0.0.0.0/0.
+3.	Add Outbound Rule:
+o	Allow all traffic (0.0.0.0/0).
+________________________________________
+1.	Base System Prep (All Nodes)
+sudo apt update && sudo apt upgrade -y
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+Enable required modules:
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+Sysctl config:
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sudo sysctl --system
+________________________________________
+2.	Container Runtime (All Nodes)
+sudo apt install -y containerd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+
+________________________________________
+3.	Install kubeadm, kubelet, kubectl (all nodes)
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+# Add Kubernetes repo key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# Add repo
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+Check versions:
+kubectl version --client
+kubeadm version
+
+________________________________________
+4.	Kubelet Override Config (Fix 🔥) (All Nodes)
+👉 Yeh har node (master + workers) par karna hai.
+sudo mkdir -p /etc/systemd/system/kubelet.service.d/
+sudo nano /etc/systemd/system/kubelet.service.d/override.conf
+Add this:
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--authentication-token-webhook=true --authorization-mode=Webhook"
+Save + exit. Reload & restart:
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+Check kubelet port:
+ss -lntp | grep 10250
+
+________________________________________
+5.	Initialize Master Node
+Run only on Master node:
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+Output will give you the kubeadm join command for worker nodes. Keep it handy.
+________________________________________
+6.	Configure kubectl on Master
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+Check nodes (Master only for now):
+Ye command run krna agr ready sttus na mily tu pryshan ni hona 2 mint lag jatyy hn es ko.
+kubectl get nodes
+________________________________________
+7.	Install Network Plugin (Flannel)
+Run on Master:
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+Verify pod network:
+kubectl get pods -n kube-system
+
+________________________________________
+8.	Join Worker Nodes
+On Worker1 and Worker2, run the kubeadm join command from Master output:
+sudo kubeadm join 172.31.5.182:6443 --token <TOKEN> \
+    --discovery-token-ca-cert-hash sha256:<HASH>
+Check on Master:
+kubectl get nodes
+All 3 nodes should show Ready.
+________________________________________
+9.	Security Setup
+Enable RBAC (Already default in kubeadm) on master
+Check default:
+kubectl get clusterrolebinding
+ Create Admin ServiceAccount (Master)
+kubectl create serviceaccount admin-user -n kube-system
+kubectl create clusterrolebinding admin-user-binding --clusterrole=cluster-admin --serviceaccount=kube-system:admin-user
+________________________________________
+10.	Enable Network Policies on master
+Example: Allow frontend → backend only
+Run command as 
+nano network-policy.yaml
+code as
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+Apply:
+kubectl apply -f network-policy.yaml
+________________________________________
+11.	Scaling Setup on Master
+Deploy Scalable App (nginx example)
+Run command as 
+nano nginx-deployment.yaml
+code as
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.23
+        ports:
+        - containerPort: 80
+Apply on Master:
+kubectl apply -f nginx-deployment.yaml
+Scale app:
+kubectl scale deployment nginx-deployment --replicas=5
+kubectl get pods
+
+ Horizontal Pod Autoscaler
+kubectl autoscale deployment nginx-deployment --cpu-percent=50 --min=2 --max=10
+kubectl get hpa
+________________________________________
+12.	Monitoring Setup (Metrics Server)
+Install Metrics Server
+Run on Master:
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+Check pod:
+kubectl get pods -n kube-system
+kubectl top nodes
+kubectl top pods -A
+
+
+error ayy ga yaha 
+
+Fix for Metrics Server
+
+Edit the metrics-server deployment
+
+kubectl -n kube-system edit deployment metrics-server
+
+
+Find the containers: → args: section, and add these flags:
+
+      containers:
+      - name: metrics-server
+        args:
+          - --cert-dir=/tmp
+          - --secure-port=4443
+          - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+          - --kubelet-insecure-tls
+
+Aur neechay bhi add krna command 4443 command 10350 ki jagga.
+
+
+Save & exit the editor.
+
+ Restart metrics-server
+
+kubectl delete pod -n kube-system -l k8s-app=metrics-server
+
+
+This will restart it with the new flags.
+
+Verify
+
+After 1–2 minutes, check again:
+
+kubectl get pods -n kube-system
+kubectl top nodes
+kubectl top pods -A
+
+________________________________________
+13.	Prometheus + Grafana on Kubernetes 
+
+a)	Monitoring Namespace
+
+kubectl create namespace monitoring
+
+b)	Prometheus Operator CRDs
+
+kubectl apply --server-side -f https://github.com/prometheus-operator/prometheus-operator/releases/latest/download/bundle.yaml
+c)	Install Helm
+sudo snap install helm --classic
+helm version
+
+d)	Install Prometheus + Grafana (Helm Chart)
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
+
+e)	Check Pods
+kubectl get pods -n monitoring
+
+f)	Port-Forward Services (Master Node)
+
+Grafana (port 3000)
+
+kubectl port-forward svc/prometheus-grafana 3000:80 -n monitoring
+Prometheus (port 9090)
+kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
+
+g)	SSH Tunnel (Local PC → Master Node)
+Windows (CMD/PowerShell)
+ssh -i "C:\Users\Shan Zafar\Downloads\54.pem" -L 3000:localhost:3000 -L 9090:localhost:9090 ubuntu@<MASTER_NODE_PUBLIC_IP>
+
+h)	Open in Browser (Local PC)
+•	Grafana:
+👉 http://localhost:3000
+Login: admin / prom-operator
+•	Prometheus:
+👉 http://localhost:9090
+________________________________________
+
+14.	Final Short Summary 
+Is project mein humne production-ready Kubernetes cluster scratch se build kiya using kubeadm.
+Cluster ko secure karne ke liye RBAC aur network policies use ki, taake access control aur communication safe ho.
+Monitoring ke liye humne Metrics-Server, aur Prometheus + Grafana integrate kiya taake resource utilization aur observability mile.
+Phir ek sample Nginx application deploy kiya, usko Kubernetes Service se expose kiya, aur Horizontal Pod Autoscaler (HPA) se scaling test kiya load ke against.
+Ye poora setup ek real-world production architecture ka example hai jahan security, monitoring aur scalability ensure hoti hai containerized applications ke liye.
+________________________________________
+15.	Project Abstract
+Is project mein ek production-ready Kubernetes cluster setup kiya gaya using kubeadm, jismein security (RBAC, Network Policies), monitoring (Metrics-Server, Prometheus, Grafana) aur scalability (HPA) implement hui. Ye setup ek real-world production architecture ko demonstrate karta hai for running containerized apps.
+________________________________________

@@ -1,0 +1,112 @@
+✅ AWS Monitoring & Alarming (Full Practical with IAM, KMS, EC2, CloudTrail, CloudWatch, SNS)
+
+________________________________________
+🧠 Practical Work 
+________________________________________
+
+🔹 Step 1: IAM User Banana (Admin Access)
+AWS Console → IAM → Add User → naam do (kms-admin)
+→ Console access enable → AdministratorAccess policy attach karo
+→ User create karo aur Access key/Secret key save kar lo.
+👉 Purpose: ye user sab AWS services (KMS, CloudTrail etc.) manage karega.
+
+🔹 Step 2: KMS Key Banana (Encryption ke liye)
+KMS → Customer Managed Keys → Create Key → Symmetric select karo
+→ Alias: alias/cloudtrail-logs-key → apna IAM user (kms-admin) add karo
+→ Policy me CloudTrail permission zaroor daalni hai (warna error aayega)
+→ Review → Create Key
+👉 Purpose: CloudTrail ke logs encrypt karne ke liye.
+
+🔹 Step 3: EC2 Instance Launch Karna
+EC2 → Launch Instance → Amazon Linux 2 → t2.micro
+→ SSH (22) allow karo → Key pair banao → Launch karo
+👉 Purpose: ye instance hum monitoring aur alerting test ke liye use karenge.
+
+🔹 Step 4: CloudTrail Enable Karna (KMS Key ke saath)
+CloudTrail → Create Trail → Apply to all regions
+→ New S3 bucket banao (unique name dena)
+→ SSE-KMS Encryption enable karo → apni alias/cloudtrail-logs-key select karo
+→ Log validation enable → Create Trail
+👉 Purpose: account ke andar hone wali har activity ka secure audit log banana.
+
+🔹 Step 5: CloudWatch Dashboard Banana
+CloudWatch → Dashboards → Create Dashboard
+→ Widget: Line Graph → Metric: EC2 → CPUUtilization
+→ Apna instance select karo → Save Dashboard
+👉 Purpose: real-time CPU aur performance monitoring ke liye dashboard.
+
+🔹 Step 6: SNS Topic & Email Subscription
+SNS → Create Topic (name: CPU-Alerts)
+→ Create Subscription → Protocol: Email → Endpoint: apni email
+→ Email inbox me jaakar confirm karo.
+👉 Purpose: CPU alert trigger hone par email receive karna.
+
+🔹 Step 7: CloudWatch Alarm Create Karna (CPU > 70%)
+CloudWatch → Alarms → Create Alarm
+→ Metric: EC2 → CPUUtilization → Apna instance select karo
+→ Threshold: 70% se zyada → Action: Notify CPU-Alerts
+→ Name: High-CPU-Usage → Create Alarm
+👉 Purpose: jab CPU usage high ho to automatic email alert aaye.
+
+🔹 Step 8: CPU Load Generate Karna aur Alarm Test
+SSH se EC2 join karo:
+```bash
+ssh -i key.pem ubuntu@<EC2-IP>
+sudo apt update -y
+sudo apt install stress-ng -y
+stress-ng --cpu 4 --timeout 300s
+stress-ng --cpu 2 --cpu-load 95 --timeout 600s
+````
+
+CloudWatch me jao → Alarm state dekho (ALARM → OK)
+Email inbox check karo → Alerts receive hone chahiye.
+👉 Purpose: real test karna ke alert system sahi kaam kar raha hai ya nahi.
+
+🔹 Step 9: CloudTrail Logs Verify Karna
+CloudTrail → Event History → Filter: ec2.amazonaws.com
+→ Instance start/stop/terminate logs check karo.
+👉 Purpose: verify karna ke CloudTrail sahi tarah sab events record kar raha hai.
+
+---
+
+📊 Summary Table
+
+| Task                 | Status | Notes                       |
+| -------------------- | ------ | --------------------------- |
+| IAM User             | ✅      | kms-admin created           |
+| KMS Key              | ✅      | alias/cloudtrail-logs-key   |
+| EC2 Instance         | ✅      | t2.micro launched           |
+| CloudTrail           | ✅      | Logs encrypted              |
+| CloudWatch Dashboard | ✅      | CPUUtilization metric added |
+| SNS Topic            | ✅      | Email subscribed            |
+| CloudWatch Alarm     | ✅      | CPU > 70% alert created     |
+| Stress Test          | ✅      | Alarm + Email verified      |
+
+---
+
+🎯 Assignment: CPU Spike Notification Setup
+
+Goal: Jab EC2 ka CPU usage 70% se zyada ho, AWS SNS ke zariye email alert bhejna.
+
+1️⃣ EC2 → Launch Instance (Amazon Linux 2, t2.micro)
+2️⃣ SNS → Create Topic (CPU-Alerts) → Email subscribe & confirm
+3️⃣ CloudWatch → Alarm → Metric: CPUUtilization → Threshold: >70% → Notify: CPU-Alerts
+4️⃣ EC2 SSH → Install stress-ng:
+
+```bash
+sudo apt update -y
+sudo apt install stress-ng -y
+stress-ng --cpu 2 --cpu-load 95 --timeout 600s
+```
+
+5️⃣ CloudWatch me Alarm status dekho → Email inbox me alert aayega (ALARM → OK)
+✅ Assignment complete!
+
+---
+
+👨‍💻 End Result:
+Poora AWS monitoring setup ready hai — IAM, KMS, CloudTrail, CloudWatch, SNS sab integrated aur working!
+
+```
+
+---

@@ -1,0 +1,312 @@
+# Practical Work + Assignments — AWS High Availability (HA) Multi-AZ Setup
+
+Practical Work
+
+### Step 1 — Create Custom VPC
+
+* **Purpose:** Apni network isolate aur manage karne ke liye custom VPC.
+* **Commands/Steps:**
+
+  * AWS Console → VPC → Create VPC
+  * Name: `ha-prod-vpc`
+  * CIDR: `10.0.0.0/16`
+  * Tenancy: Default → Create
+
+---
+
+### Step 2 — Create Subnets (Multi-AZ)
+
+* **Purpose:** Multi-AZ setup ke liye public + private subnets.
+* **Subnets Table:**
+
+  * Public-Subnet-A → 10.0.1.0/24 → us-east-1a
+  * Public-Subnet-B → 10.0.2.0/24 → us-east-1b
+  * Private-Subnet-A → 10.0.3.0/24 → us-east-1a
+  * Private-Subnet-B → 10.0.4.0/24 → us-east-1b
+
+---
+
+### Step 3 — Internet Gateway (IGW)
+
+* **Purpose:** Public subnet internet access ke liye.
+* **Steps:**
+
+  * VPC → Internet Gateways → Create IGW
+  * Name: `ha-igw` → Attach to `ha-prod-vpc`
+
+---
+
+### Step 4 — Route Tables
+
+* **Public RT:**
+
+  * Destination: `0.0.0.0/0` → Target: `ha-igw`
+  * Subnet associations → Public-Subnet-A + Public-Subnet-B
+* **Private RT:**
+
+  * No internet route yet
+  * Subnet associations → Private-Subnet-A + Private-Subnet-B
+
+---
+
+### Step 5 — NAT Gateway (Private Internet)
+
+* **Purpose:** Private EC2 internet access (updates/Apache install).
+* **Steps:**
+
+  * Elastic IP → Allocate new → `nat-eip`
+  * NAT Gateway → Subnet: Public-Subnet-A → Elastic IP: `nat-eip`
+  * Private RT → Add route: `0.0.0.0/0` → Target: NAT Gateway
+
+---
+
+### Step 6 — Security Groups
+
+* **Bastion-SG (Public EC2):**
+
+  * Inbound: SSH 22 → My IP
+  * Outbound: All traffic → 0.0.0.0/0
+* **Private-EC2-SG (Private EC2):**
+
+  * Inbound: SSH 22 → Source: Bastion-SG
+  * Outbound: All traffic → 0.0.0.0/0
+
+---
+
+### Step 7 — Launch Public EC2 (Bastion)
+
+* AMI: Ubuntu 24.04 LTS
+* Instance Type: t2.micro
+* Subnet: Public-Subnet-A
+* Auto-assign Public IP: Enable
+* SG: Bastion-SG
+* Key Pair: `bastion-key.pem`
+
+---
+
+### Step 8 — Launch Private EC2 (AZ-A + AZ-B)
+
+* **Instance 1:** Private-Subnet-A → Auto-assign Public IP: Disable → SG: Private-EC2-SG → Key: bastion.pem
+* **Instance 2:** Private-Subnet-B → Same as above
+
+---
+
+### Step 9 — SSH & Apache Installation
+
+**Bastion → Private EC2 (AZ-A):**
+
+```bash
+ssh -i ~/Downloads/bastion.pem ubuntu@<Bastion-Public-IP>
+chmod 400 /home/ubuntu/bastion.pem
+ssh -i /home/ubuntu/bastion.pem ubuntu@<Private-EC2-A-IP>
+
+sudo apt update -y
+sudo apt install apache2 -y
+echo "Hello from Private EC2 (AZ-A)" | sudo tee /var/www/html/index.html
+systemctl status apache2
+curl localhost
+```
+
+**Bastion → Private EC2 (AZ-B):**
+
+* Same steps as above, replace message: `"Hello from Private EC2 (AZ-B)"`
+
+---
+
+### Step 10 — Auto Scaling Setup
+
+**Launch Template:**
+
+* Name: `Launch1a.s`
+* AMI: Ubuntu 24.04 LTS
+* Instance Type: t3.micro
+* SG: Private-EC2-SG
+* Key: bastion.pem
+* User data: Apache install aur welcome page
+
+**Auto Scaling Group:**
+
+* Name: `private-ec2-asg`
+* Launch Template: `Launch1a.s`
+* VPC: ha-prod-vpc
+* Subnets: Private-Subnet-A + Private-Subnet-B
+* Desired: 2, Min:1, Max:4
+* Attach to Target Group: `private-ec2-tg`
+
+---
+
+### Step 11 — Application Load Balancer (ALB)
+
+* **Create ALB:** Internet-facing, HTTP 80, Subnets: Public-Subnet-A + B, SG: mynewsg
+* **Create Target Group:** `private-ec2-tg`, Protocol: HTTP 80 → Add both private EC2s
+* Health Check: `/` → Success codes 200
+
+---
+
+### Step 12 — Verify Multi-AZ HA & ALB
+
+* **Bastion → Private EC2:** `curl localhost` → AZ-A / AZ-B response
+* **Browser → ALB DNS:** Round-robin responses between AZ-A & AZ-B
+* **Auto Scaling Test:** Terminate one private EC2 → New instance auto-launch → ALB still serves traffic
+
+---
+
+### ✅ Key Takeaways
+
+* Multi-AZ: AZ-A + AZ-B for HA
+* ALB: Traffic distribution
+* Auto Scaling: Load & failure handling
+* Private EC2: Internet via NAT
+* Bastion: Secure SSH access
+* Apache installed & accessible
+
+---
+# Assignment — Backup & Restore Plan (AWS Multi-AZ)
+
+### Step 1 — Create AMI Backup (Instance Image)
+
+* **Purpose:** Full instance (OS + Apache + configs) backup for disaster recovery.
+* **Commands/Steps:**
+
+  1. AWS Console → EC2 → Instances
+  2. Select Private EC2 AZ-A → Actions → Image → Create Image
+  3. Name: `Private-EC2-AZ-A-Backup`
+  4. Optional: No reboot → Check agar downtime avoid karna ho
+  5. Repeat for: Private EC2 AZ-B + Bastion Public EC2
+  6. Verify → EC2 → AMIs → backup images ready
+
+---
+
+### Step 2 — Create EBS Snapshot (Volume Backup)
+
+* **Purpose:** Disk-level data safe, recover volume if corrupt.
+* **Steps/Commands:**
+
+  1. EC2 → Volumes → Select Private EC2 AZ-A root volume
+  2. Actions → Create Snapshot → Name: `Private-EC2-AZ-A-Snapshot`
+  3. Repeat for Private EC2 AZ-B + Bastion
+  4. Verify → EC2 → Snapshots → available
+
+---
+
+### Step 3 — Application Data Backup to S3
+
+* **Purpose:** Website/app files safe in durable S3 bucket.
+* **Steps:**
+
+  * **Part 1 — Create S3 Bucket:**
+
+    ```
+    Bucket name: ha-assignment-backup  
+    Region: us-east-1  
+    Block Public Access: ON  
+    Optional: Enable versioning
+    ```
+  * **Part 2 — IAM Role for EC2:**
+
+    * Create custom policy `S3BackupWritePolicy` (least privilege)
+    * Create IAM Role `EC2-S3-Backup-Role` → Attach policy
+    * Attach role to private EC2 / ASG Launch Template
+  * **Part 3 — Optional S3 VPC Endpoint:**
+
+    * VPC → Endpoints → Create → Service: S3 → private-rt route table
+  * **Part 4 — Install AWS CLI v2 on Private EC2:**
+
+    ```bash
+    sudo apt update -y
+    sudo apt install -y unzip curl
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+    aws --version
+    ```
+  * **Part 5 — Verify Role/credentials:**
+
+    ```bash
+    aws sts get-caller-identity
+    export AWS_REGION=us-east-1
+    ```
+  * **Part 6 — First Sync to S3:**
+
+    ```bash
+    aws s3 sync /var/www/html s3://ha-assignment-backup/ --dryrun --region us-east-1
+    aws s3 sync /var/www/html s3://ha-assignment-backup/ --region us-east-1
+    aws s3 ls s3://ha-assignment-backup/ --region us-east-1
+    ```
+
+---
+
+### Step 4 — Automated Backup (Lifecycle Manager) **Optional**
+
+* **Purpose:** Automatic EBS snapshots, no manual backup needed.
+* **Steps:**
+
+  1. AWS Console → EC2 → Lifecycle Manager → Create Policy
+  2. Policy Type: EBS Snapshot → Target Volumes: Private EC2 AZ-A/B + Bastion
+  3. Schedule: Daily / Weekly → Retention: e.g., 7 snapshots
+  4. Create Policy → Automatic snapshots ready
+
+---
+
+### Step 5 — Restore Plan
+
+**Purpose:** Restore data/app if EC2 crash ya delete ho jaye.
+
+* **Option 1 — Restore from AMI (Full EC2):**
+
+  1. EC2 → AMIs → Select backup → Launch Instance
+  2. VPC: ha-prod-vpc → Subnet: AZ-A/B → SG: Private-EC2-SG
+  3. Connect via Bastion (if private)
+  4. Verify Apache & website:
+
+  ```bash
+  curl localhost
+  # Output: Hello from Private EC2 (AZ-A/B)
+  ```
+* **Option 2 — Restore EBS Snapshot:**
+
+  1. EC2 → Snapshots → Create Volume → AZ
+  2. Attach volume → SSH via Bastion → Check:
+
+  ```bash
+  lsblk
+  sudo mkdir /mnt/restore
+  sudo mount /dev/xvdf /mnt/restore
+  sudo cp -r /mnt/restore/* /var/www/html/
+  curl localhost
+  ```
+* **Option 3 — Restore from S3 (Primary Recommended):**
+
+  ```bash
+  aws s3 sync s3://ha-assignment-backup/ /var/www/html/
+  curl localhost
+  ```
+
+---
+
+### Step 6 — Test Backup & Restore (Practical)
+
+1. Terminate Private EC2 AZ-A → AWS Console → EC2 → Terminate → Confirm
+2. Launch New Instance using AMI → Verify Apache & website
+3. Launch using EBS Snapshot (optional) → Mount & copy files → Verify
+4. Verify ALB & Auto Scaling → Browser → ALB DNS → Round-robin responses:
+
+   ```
+   Hello from Private EC2 (AZ-A)
+   Hello from Private EC2 (AZ-B)
+   ```
+
+✅ Result: Backup & restore kaam kar raha, HA setup verified
+
+---
+
+### 🔑 Key Takeaways
+
+* Backup: AMI (full), EBS Snapshot (volume), S3 (app files)
+* Restore: AMI / EBS / S3 → Fast & production-ready
+* Multi-AZ: HA ensured
+* ALB & Auto Scaling: Load distribute & failover verified
+* IAM Roles + Lifecycle Manager → Security + automation
+
+---
+

@@ -1,0 +1,386 @@
+🚀 AWS Monitoring & Alarming (Full Practical with IAM, KMS, EC2, CloudTrail, CloudWatch, SNS)
+
+
+📖 Conceptual Overview (Roman Urdu)
+AWS monitoring ka matlab hai apne cloud infrastructure ki health, security, aur performance ko continuously observe karna. Is se aap timely alert le kar problems ko prevent kar sakte hain.
+Is process ke liye hum ye AWS services use karte hain:
+•	IAM (Identity and Access Management): Users aur permissions ko manage karta hai.
+•	AWS KMS (Key Management Service): Data encryption keys create aur manage karta hai.
+•	EC2 (Elastic Compute Cloud): Virtual server jahan hum apni application chala sakte hain.
+•	CloudTrail: AWS account mein hone wali har API call ka audit log banata hai.
+•	CloudWatch: Metrics monitor karta hai, dashboards banata hai, aur alarms set karta hai.
+•	SNS (Simple Notification Service): Notifications aur alerts ke liye.
+
+---
+
+❓ Kyu Ye Sab Zaroori Hai?
+•	Security audit karne ke liye
+•	Performance monitoring aur alerting ke liye
+•	Automation ke liye (jaise alerts ke basis par automated response)
+•	Compliance ke liye
+
+---
+
+🛠 Full Practical Work Lab — Step-by-Step
+
+---
+
+Step 1: IAM User Banana (Admin Permissions ke Saath)
+Purpose: KMS key aur baaki AWS services ko manage karne ke liye ek user chahiye jise appropriate permissions di jayengi.
+
+1. AWS Console me login karo → Services → IAM open karo.
+2. Left menu me Users pe click karo → Add users button pe click karo.
+3. User name: Kuch meaningful do (e.g., kms-admin).
+4. Access type:
+   o	Console access enable karo (password set karo).
+   o	Agar CLI use karna hai to Programmatic access bhi enable kar sakte hain.
+5. Next pe click karo.
+6. Permissions:
+   o	“Attach existing policies directly” select karo.
+   o	Search box me AdministratorAccess type karo aur checkbox mark karo (training ke liye full access de rahe hain).
+7. Next → Tags (optional) → Review.
+8. Create user pe click karo.
+9. Naya user ban gaya!
+   o	Console login link, username, aur password note kar lo.
+   o	Agar programmatic access liya hai, to Access key aur Secret key save kar lo.
+
+---
+
+Step 2: AWS KMS Key Banana (CloudTrail Logs Encryption Ke Liye)
+
+---
+
+Purpose: CloudTrail logs ko encrypt karne ke liye apni encryption key create karni hogi.
+
+1. AWS Console → Services → KMS (Key Management Service).
+2. Left sidebar me Customer managed keys pe click karo.
+3. Create key pe click karo.
+4. Symmetric key select karo → Next.
+5. Key details:
+   o	Alias: alias/cloudtrail-logs-key (apni marzi ka naam de sakte ho).
+   o	Description likh sakte ho, jaise "Encryption key for CloudTrail logs".
+6. Next karo.
+7. Define key administrators:
+   o	Yahan apne IAM user (jo abhi banaya hai, jaise kms-admin) ko add karo.
+8. Next karo.
+9. Define key usage permissions:
+   o	Default settings theek hain, CloudTrail automatic use kar lega.
+
+Note: policy ye rakhna warna trail create krty howy error ayy ga
+
+Yeh rahi full updated policy jo aap apni KMS key me use kar sakte hain:
+{
+"Version": "2012-10-17",
+"Id": "key-consolepolicy-3",
+"Statement": [
+{
+"Sid": "Enable IAM User Permissions",
+"Effect": "Allow",
+"Principal": {
+"AWS": "arn:aws:iam::249062636327:root"
+},
+"Action": "kms:*",
+"Resource": "*"
+},
+{
+"Sid": "Allow access for Key Administrators",
+"Effect": "Allow",
+"Principal": {
+"AWS": "arn:aws:iam::249062636327:user/kms-admin"
+},
+"Action": [
+"kms:Create*",
+"kms:Describe*",
+"kms:Enable*",
+"kms:List*",
+"kms:Put*",
+"kms:Update*",
+"kms:Revoke*",
+"kms:Disable*",
+"kms:Get*",
+"kms:Delete*",
+"kms:TagResource",
+"kms:UntagResource",
+"kms:ScheduleKeyDeletion",
+"kms:CancelKeyDeletion",
+"kms:RotateKeyOnDemand"
+],
+"Resource": "*"
+},
+{
+"Sid": "Allow CloudTrail to use the key",
+"Effect": "Allow",
+"Principal": {
+"Service": "cloudtrail.amazonaws.com"
+},
+"Action": [
+"kms:GenerateDataKey*",
+"kms:Decrypt"
+],
+"Resource": "*"
+}
+]
+}
+
+10. Next → Review → Create key.
+11. Key create ho chuki hai.
+
+---
+
+Step 3: EC2 Instance Launch Karna
+
+---
+
+Purpose: AWS resource jiska hum monitoring karna chahte hain.
+
+1. AWS Console → Services → EC2 → Launch Instance.
+2. Instance name: Monitoring-Demo-Instance.
+3. AMI: Amazon Linux 2 (Free Tier eligible).
+4. Instance type: t2.micro.
+5. Key Pair: Naya banao ya existing use karo, .pem file apne paas rakho.
+6. Security group me:
+   o	SSH (port 22) apni IP ke liye allow karo.
+   o	HTTP (port 80) agar zaroorat ho to allow karo.
+7. Review aur Launch karo.
+8. Instance running hone tak wait karo.
+
+---
+
+Step 4: CloudTrail Enable Karna (KMS Key Ke Saath)
+
+---
+
+Purpose: Account ki API activity ka audit trail maintain karna, aur logs ko encrypt karna.
+
+1. AWS Console → Services → CloudTrail → Trails → Create trail.
+2. Trail name: MyActivityTrail.
+3. Apply trail to all regions check karo.
+4. Storage location:
+   o	Create new S3 bucket select karo.
+   o	Bucket name do (unique hona chahiye), jaise my-cloudtrail-logs-bucket-123456.
+   Note : agr exiting bucket add kr rahy ho tu ensure kro k ye policy ho eski warna trail create ni hoga
+5. ```
+       Bucket policy me ye policy add karo (agar already na ho):
+   ```
+
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+"Sid": "AWSCloudTrailAclCheck20150319",
+"Effect": "Allow",
+"Principal": {
+"Service": "cloudtrail.amazonaws.com"
+},
+"Action": "s3:GetBucketAcl",
+"Resource": "arn:aws:s3:::my-unique-bucket-249062636327"
+},
+{
+"Sid": "AWSCloudTrailWrite20150319",
+"Effect": "Allow",
+"Principal": {
+"Service": "cloudtrail.amazonaws.com"
+},
+"Action": "s3:PutObject",
+"Resource": "arn:aws:s3:::my-unique-bucket-249062636327/AWSLogs/249062636327/*",
+"Condition": {
+"StringEquals": {
+"s3:x-amz-acl": "bucket-owner-full-control"
+}
+}
+}
+]
+}
+Yahan "my-unique-bucket-249062636327" ko apni bucket ke naam se replace karna hai.
+5.	Log file SSE-KMS encryption: Enable karo.
+6.	Customer managed KMS key select karo → apni alias/cloudtrail-logs-key choose karo.
+7.	Log file validation: Enable karo.
+8.	Baaki settings (SNS notification, CloudWatch logs integration) optional hain, aap enable kar sakte hain.
+9.	Create trail pe click karo.
+10.	Trail active hone ke baad logs collect karna start kar dega.
+
+---
+
+Step 5: CloudWatch Dashboard Banani
+
+---
+
+Purpose: EC2 metrics monitor karne ke liye dashboard create karna.
+
+1. AWS Console → Services → CloudWatch → Dashboards → Create dashboard.
+2. Dashboard name: My-Monitoring-Dashboard.
+3. Widget add karo → Line graph select karo.
+4. Metric select karo:
+   o	Category: EC2 → Per-Instance Metrics → CPUUtilization.
+   o	Apne instance ko select karo.
+5. Widget ko dashboard me add karo aur save karo.
+
+---
+
+Step 6: SNS Topic & Email Subscription Setup Karna
+
+---
+
+Purpose: Alarms ke liye notification receive karna.
+
+1. AWS Console → Services → SNS → Topics → Create topic.
+2. Topic type: Standard.
+3. Name: CPU-Alerts.
+4. Topic create karne ke baad Create subscription karo:
+   o	Protocol: Email.
+   o	Endpoint: Apni email address.
+5. Email inbox me jaakar subscription confirm karo.
+
+---
+
+Step 7: CloudWatch Alarm Create Karna (CPU > 70%)
+
+---
+
+Purpose: CPU usage zyada hone par alert milna.
+
+1. AWS Console → CloudWatch → Alarms → Create alarm.
+2. Metric select karo:
+   Note : agr required instance na mily tu instance ki id se search krna mil jay ga
+   o	EC2 → Per-Instance Metrics → CPUUtilization.
+   o	Apne instance ko select karo.
+3. Condition set karo:
+   o	Threshold: Greater than 70%.
+   o	Duration: 5 minutes.
+4. Actions:
+   o	Notify karo apne CPU-Alerts SNS topic ko.
+5. Alarm name do, jaise High-CPU-Usage.
+6. Alarm create karo.
+
+---
+
+Step 8: CPU Load Generate Kar Ke Alarm Test Karna
+a.	SSH into EC2
+ssh -i /path/to/key.pem ubuntu@<EC2-Public-IP>
+•	Replace /path/to/key.pem with your private key path
+•	Replace <EC2-Public-IP> with your EC2's public IP
+b.	Update & Install stress-ng
+sudo apt update -y
+sudo apt install stress-ng -y
+•	apt is used instead of yum
+•	stress-ng is a CPU and memory stress-testing tool
+c.	Run CPU Load Test
+stress-ng --cpu 4 --timeout 300s
+•	--cpu 4 → Use 4 CPU workers (adjust based on your instance’s vCPUs)
+•	--timeout 300s → Run for 5 minutes to trigger CloudWatch alarms
+Phir zyada aggressive load do:
+stress-ng --cpu 2 --cpu-load 95 --timeout 600s
+•	--cpu-load 95 → har CPU core ko ~95% pe busy rakhta hai
+•	--timeout 600s → 10 minutes tak chalega (taake CloudWatch ke multiple evaluation periods cover ho jayein)
+d.	Monitor in CloudWatch
+•	Go to AWS Console → CloudWatch → Alarms
+•	Watch your alarm change to ALARM state during stress test
+•	After the stress ends, it should go back to OK
+e.	Verify Email Notifications
+•	Check the email you used in the SNS topic subscription
+•	You should see:
+o	ALARM notification when CPU usage is high
+o	OK notification when CPU goes back to normal
+
+---
+
+Step 9: CloudTrail Logs Verify Karna
+
+---
+
+1. AWS Console → CloudTrail → Event history.
+2. Filter lagao: Event source = ec2.amazonaws.com.
+3. Apne instance ke events (launch, start, stop, terminate) check karo.
+4. Details me user, IP address, timestamp bhi dikhai dega.
+
+---
+
+✅ Summary Table
+Task	Status	Notes
+IAM User Creation	✅	Admin permissions set
+KMS Key Creation	✅	alias/cloudtrail-logs-key
+EC2 Instance Launch	✅	t2.micro, Amazon Linux 2
+CloudTrail Enable	✅	Logs encrypted with KMS key
+CloudWatch Dashboard	✅	CPU Utilization metric
+SNS Topic & Subscription	✅	Email confirmation done
+CloudWatch CPU Alarm	✅	70% threshold
+Alarm Testing (stress-ng)	✅	Email alerts received
+CloudTrail Log Verify	✅	API calls logged
+
+---
+
+Assignment:
+CPU Spike Notification Setup
+Goal
+Jab EC2 instance ka CPU usage 70% se zyada ho, tab AWS SNS ke through email notification bhejna.
+
+---
+
+Step 1: EC2 Instance Launch
+
+1. EC2 → Launch Instance
+   o	Name: CPU-Test-Instance
+   o	AMI: Amazon Linux 2 (Free Tier)
+   o	Type: t2.micro
+   o	Security Group: SSH (22) allow from My IP
+2. Launch karo & wait until running
+
+---
+
+Step 2: SNS Topic & Email Subscription
+
+1. SNS → Topics → Create topic
+   o	Type: Standard
+   o	Name: CPU-Alerts
+2. Create subscription
+   o	Protocol: Email
+   o	Endpoint: apna email address
+3. Email inbox me Confirm subscription
+
+---
+
+Step 3: CloudWatch Alarm
+
+1. CloudWatch → Alarms → Create alarm
+2. Metric:
+   Note : agr required instance na mily tu instance ki id se search krna mil jay ga
+   o	EC2 → Per-Instance Metrics → CPUUtilization
+   o	Apna instance select karo
+3. Condition:
+   o	Threshold: Greater than 70%
+   o	Period: 5 minutes
+4. Actions: Notify CPU-Alerts SNS topic
+5. Alarm name: High-CPU-Usage
+6. Create alarm
+
+---
+
+Step 4: CPU Load Test
+I.	SSH into EC2
+ssh -i /path/to/key.pem ubuntu@<EC2-Public-IP>
+•	Replace /path/to/key.pem with your private key path
+•	Replace <EC2-Public-IP> with your EC2's public IP
+II.	Update & Install stress-ng
+sudo apt update -y
+sudo apt install stress-ng -y
+•	apt is used instead of yum
+•	stress-ng is a CPU and memory stress-testing tool
+III.	Run CPU Load Test
+stress-ng --cpu 4 --timeout 300s
+•	--cpu 4 → Use 4 CPU workers (adjust based on your instance’s vCPUs)
+•	--timeout 300s → Run for 5 minutes to trigger CloudWatch alarms
+Phir zyada aggressive load do:
+stress-ng --cpu 2 --cpu-load 95 --timeout 600s
+•	--cpu-load 95 → har CPU core ko ~95% pe busy rakhta hai
+•	--timeout 600s → 10 minutes tak chalega (taake CloudWatch ke multiple evaluation periods cover ho jayein)
+IV.	Monitor in CloudWatch
+•	Go to AWS Console → CloudWatch → Alarms
+•	Watch your alarm change to ALARM state during stress test
+•	After the stress ends, it should go back to OK
+V.	Verify Email Notifications
+•	Check the email you used in the SNS topic subscription
+•	You should see:
+o	ALARM notification when CPU usage is high
+o	OK notification when CPU goes back to normal
+
+---
